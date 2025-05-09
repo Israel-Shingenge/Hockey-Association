@@ -1,0 +1,2 @@
+D:/Inside/Nust/Israel/Hockey/hockey_union/android/app/.cxx/Debug/o6h4u5b2/x86_64/CMakeFiles/edit_cache.dir
+D:/Inside/Nust/Israel/Hockey/hockey_union/android/app/.cxx/Debug/o6h4u5b2/x86_64/CMakeFiles/rebuild_cache.dir

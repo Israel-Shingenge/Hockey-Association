@@ -1,0 +1,1 @@
+ D:\\Inside\\Nust\\Israel\\Hockey\\hockey_union\\.dart_tool\\flutter_build\\698a6168bda988dd1b1406d841876989\\native_assets.json: 
