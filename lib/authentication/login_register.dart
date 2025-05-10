@@ -11,7 +11,6 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  // Controllers for text fields
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _controllerEmail = TextEditingController();
@@ -19,7 +18,10 @@ class _LoginPageState extends State<LoginPage> {
   String? errorMessage = '';
   bool isLogin = true;
 
-  // Function to register a user
+  // New: Role dropdown value
+  String? _selectedRole;
+  final List<String> _roles = ['manager', 'admin', 'player'];
+
   Future<void> createUserWithEmailAndPassword() async {
     try {
       final userCred = await Auth().createUserWithEmailAndPassword(
@@ -28,16 +30,15 @@ class _LoginPageState extends State<LoginPage> {
         password: _controllerPassword.text,
       );
 
-      // Set display name after registration
       String fullName = '${_firstNameController.text} ${_lastNameController.text}';
       await userCred.user?.updateDisplayName(fullName);
 
+      // You can also store `_selectedRole` in Firestore here if needed
     } on FirebaseAuthException catch (e) {
       setState(() => errorMessage = e.message);
     }
   }
 
-  // Function to sign in a user
   Future<void> signInWithEmailAndPassword() async {
     try {
       await Auth().signInWithEmailAndPassword(
@@ -49,7 +50,6 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  // Widgets for the entry fields
   Widget _entryField(String label, TextEditingController c) {
     return TextField(
       controller: c,
@@ -57,11 +57,22 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  // Widget for displaying error messages
   Widget _errorMessage() {
     return Text(
       errorMessage == null || errorMessage == '' ? '' : errorMessage!,
       style: const TextStyle(color: Colors.red),
+    );
+  }
+
+  // New: Role dropdown widget
+  Widget _roleDropdown() {
+    return DropdownButtonFormField<String>(
+      value: _selectedRole,
+      items: _roles
+          .map((role) => DropdownMenuItem(value: role, child: Text(role)))
+          .toList(),
+      onChanged: (val) => setState(() => _selectedRole = val),
+      decoration: const InputDecoration(labelText: 'Select Role'),
     );
   }
 
@@ -71,39 +82,42 @@ class _LoginPageState extends State<LoginPage> {
       appBar: AppBar(title: Text(isLogin ? 'Login' : 'Register')),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (!isLogin) ...[
-              _entryField('First Name', _firstNameController),
-              _entryField('Last Name', _lastNameController),
-            ],
-            _entryField('Email', _controllerEmail),
-            _entryField('Password', _controllerPassword),
-            const SizedBox(height: 8),
-            _errorMessage(),
-            const SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: isLogin
-                  ? signInWithEmailAndPassword
-                  : createUserWithEmailAndPassword,
-              child: Text(isLogin ? 'Login' : 'Register'),
-            ),
-            TextButton(
-              onPressed: () => setState(() => isLogin = !isLogin),
-              child: Text(isLogin
-                  ? 'Don\'t have an account? Register'
-                  : 'Already have an account? Login'),
-            ),
-            if (isLogin)
-              TextButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ForgotPasswordPage()),
-                ),
-                child: const Text('Forgot Password?'),
+        child: SingleChildScrollView( // prevents overflow
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (!isLogin) ...[
+                _entryField('First Name', _firstNameController),
+                _entryField('Last Name', _lastNameController),
+                _roleDropdown(), // show dropdown only on Register
+              ],
+              _entryField('Email', _controllerEmail),
+              _entryField('Password', _controllerPassword),
+              const SizedBox(height: 8),
+              _errorMessage(),
+              const SizedBox(height: 8),
+              ElevatedButton(
+                onPressed: isLogin
+                    ? signInWithEmailAndPassword
+                    : createUserWithEmailAndPassword,
+                child: Text(isLogin ? 'Login' : 'Register'),
               ),
-          ],
+              TextButton(
+                onPressed: () => setState(() => isLogin = !isLogin),
+                child: Text(isLogin
+                    ? 'Don\'t have an account? Register'
+                    : 'Already have an account? Login'),
+              ),
+              if (isLogin)
+                TextButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ForgotPasswordPage()),
+                  ),
+                  child: const Text('Forgot Password?'),
+                ),
+            ],
+          ),
         ),
       ),
     );
