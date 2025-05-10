@@ -23,6 +23,8 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   String? errorMessage = '';
   bool isLogin = true;
+  bool _isPasswordVisible = false;
+
 
   // Role dropdown state
   String? _selectedRole;
@@ -74,15 +76,32 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  Widget _entryField(String label, TextEditingController c, {bool obscure = false, TextInputType? keyboard}) {
+  Widget _entryField(String label, TextEditingController c,
+      {bool obscure = false, TextInputType? keyboard}) {
+    final isPassword = label.toLowerCase() == 'password';
+
     return TextFormField(
       controller: c,
-      obscureText: obscure,
+      obscureText: isPassword ? !_isPasswordVisible : obscure,
       keyboardType: keyboard,
-      decoration: InputDecoration(labelText: label),
+      decoration: InputDecoration(
+        labelText: label,
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(
+                    _isPasswordVisible ? Icons.visibility : Icons.visibility_off),
+                onPressed: () {
+                  setState(() {
+                    _isPasswordVisible = !_isPasswordVisible;
+                  });
+                },
+              )
+            : null,
+      ),
       validator: (value) => value == null || value.isEmpty ? 'Enter $label' : null,
     );
   }
+
 
   Widget _errorMessage() {
     return errorMessage == null || errorMessage == ''
