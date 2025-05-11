@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:hockey_union/teams/team_popup.dart';
+import 'package:hockey_union/teams/team_page.dart';
+import 'package:hockey_union/events/event.dart';
 
 class HomeDrawer extends StatelessWidget {
   const HomeDrawer({super.key});
@@ -88,28 +89,33 @@ class HomeDrawer extends StatelessWidget {
                   },
                   isSelected: currentRoute == '/home',
                 ),
-                _buildDrawerItem(
-                  context: context, // Pass the context here
-                  icon: Icons.notifications,
-                  title: 'Notifications',
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    // Handle Notifications navigation
-                  },
-                  isSelected: currentRoute == '/notifications', // You'll need to define this route
-                ),
                _buildDrawerItem(
+                context: context, // Pass the context here
+                icon: Icons.event,
+                title: 'Events',
+                onTap: () {
+                  Navigator.of(context).pop(); // Close the drawer
+                  if (currentRoute != '/events') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const EventsPage()),
+                    );
+                  }
+                },
+                isSelected: currentRoute == '/events', // You'll need to define this route
+              ),
+                _buildDrawerItem(
                 context: context, // Pass the context here
                 icon: Icons.group,
                 title: 'Teams',
                 onTap: () {
                   Navigator.of(context).pop(); // Close the drawer
-                  showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return const CreateTeamPopup();
-                    },
-                  );
+                  if (currentRoute != '/teams') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const TeamPage()),
+                    );
+                  }
                 },
                 isSelected: currentRoute == '/teams', // You'll need to define this route
               ),

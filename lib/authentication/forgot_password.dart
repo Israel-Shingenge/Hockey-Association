@@ -40,39 +40,71 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Reset Password')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(labelText: 'Enter your email'),
-              keyboardType: TextInputType.emailAddress,
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16.0),
             ),
-            const SizedBox(height: 16),
-            _isSending
-                ? const CircularProgressIndicator()
-                : ElevatedButton(
-                    onPressed: _sendResetEmail,
-                    child: const Text('Send Reset Email'),
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  const Text(
+                    'Forgot Password',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 28.0, fontWeight: FontWeight.bold),
                   ),
-            const SizedBox(height: 12),
-            if (message != null)
-              Text(
-                message!,
-                style: TextStyle(
-                  color: message!.startsWith('Password reset')
-                      ? Colors.green
-                      : Colors.red,
-                ),
+                  const SizedBox(height: 24.0),
+                  TextFormField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      hintText: 'Enter email linked to your account',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 24.0),
+                  ElevatedButton(
+                    onPressed: _isSending ? null : _sendResetEmail,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    ),
+                    child: _isSending
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Text('Send Reset Email', style: TextStyle(fontSize: 16.0)),
+                  ),
+                  const SizedBox(height: 16.0),
+                  if (message != null)
+                    Text(
+                      message!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: message!.startsWith('Password reset')
+                            ? Colors.green
+                            : Colors.red,
+                      ),
+                    ),
+                  const SizedBox(height: 16.0),
+                  TextButton.icon(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.arrow_back_ios, size: 16),
+                    label: const Text('Back to login'),
+                  ),
+                ],
               ),
-          ],
+            ),
+          ),
         ),
       ),
     );

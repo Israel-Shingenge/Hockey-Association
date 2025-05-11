@@ -20,19 +20,18 @@ class _LoginPageState extends State<LoginPage> {
   bool _isPasswordVisible = false;
 
   Future<void> signInWithEmailAndPassword() async {
-  if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) return;
 
-  try {
-    await Auth().signInWithEmailAndPassword(
-      email: _controllerEmail.text,
-      password: _controllerPassword.text,
-    );
-    setState(() {}); // this will trigger rebuild and the stream will redirect
-  } on FirebaseAuthException catch (e) {
-    setState(() => errorMessage = e.message);
+    try {
+      await Auth().signInWithEmailAndPassword(
+        email: _controllerEmail.text,
+        password: _controllerPassword.text,
+      );
+      setState(() {}); // this will trigger rebuild and the stream will redirect
+    } on FirebaseAuthException catch (e) {
+      setState(() => errorMessage = e.message);
+    }
   }
-}
-
 
   Widget _entryField(String label, TextEditingController c,
       {bool obscure = false, TextInputType? keyboard}) {
@@ -43,10 +42,12 @@ class _LoginPageState extends State<LoginPage> {
       obscureText: isPassword ? !_isPasswordVisible : obscure,
       keyboardType: keyboard,
       decoration: InputDecoration(
-        labelText: label,
+        hintText: 'Enter $label', // Changed from labelText to hintText
+        border: const OutlineInputBorder(), // Added border
         suffixIcon: isPassword
             ? IconButton(
-                icon: Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off),
+                icon: Icon(
+                    _isPasswordVisible ? Icons.visibility : Icons.visibility_off),
                 onPressed: () {
                   setState(() {
                     _isPasswordVisible = !_isPasswordVisible;
@@ -68,40 +69,74 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Login')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
+      body: Center(
         child: SingleChildScrollView(
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                _entryField('Email', _controllerEmail, keyboard: TextInputType.emailAddress),
-                _entryField('Password', _controllerPassword, obscure: true),
-                const SizedBox(height: 8),
-                _errorMessage(),
-                const SizedBox(height: 8),
-                ElevatedButton(
-                  onPressed: signInWithEmailAndPassword,
-                  child: const Text('Login'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const RegisterPage()), // Navigate to RegisterPage
-                    );
-                  },
-                  child: const Text('Don\'t have an account? Register'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ForgotPasswordPage()),
+          padding: const EdgeInsets.all(24.0),
+          child: Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16.0),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    const Text(
+                      'Login',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 28.0, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8.0),
+                    const Text(
+                      'Hello! Welcome back',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    const SizedBox(height: 24.0),
+                    _entryField('Email', _controllerEmail,
+                        keyboard: TextInputType.emailAddress),
+                    const SizedBox(height: 16.0),
+                    _entryField('Password', _controllerPassword, obscure: true),
+                    const SizedBox(height: 16.0),
+                    _errorMessage(),
+                    const SizedBox(height: 24.0),
+                    ElevatedButton(
+                      onPressed: signInWithEmailAndPassword,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                      ),
+                      child: const Text('LOGIN', style: TextStyle(fontSize: 16.0)),
+                    ),
+                    const SizedBox(height: 16.0),
+                    Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch, // Make buttons take full width
+                    children: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const RegisterPage()), // Navigate to RegisterPage
+                          );
+                        },
+                        child: const Text('Don\'t have an account? Sign Up', textAlign: TextAlign.center,),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const ForgotPasswordPage()),
+                        ),
+                        child: const Text('Forgot your password? Reset', textAlign: TextAlign.center,),
+                      ),
+                    ],
                   ),
-                  child: const Text('Forgot Password?'),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
