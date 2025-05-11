@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hockey_union/authentication/auth.dart';
 import 'package:hockey_union/home/home_page.dart';
-import 'package:hockey_union/authentication/login_register.dart';
+import 'package:hockey_union/authentication/login.dart';
 import 'package:flutter/material.dart';
 
 class WidgetTree extends StatefulWidget {
@@ -28,5 +28,4 @@ class _WidgetTreeState extends State<WidgetTree> {
     );
   }
 }
-
 

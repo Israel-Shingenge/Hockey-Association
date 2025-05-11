@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:hockey_union/authentication/auth.dart';
+import 'edit_profile_page.dart';
+import 'language_security.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -16,9 +18,7 @@ class _ProfilePageState extends State<ProfilePage> {
   late TextEditingController _lastNameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
-  late TextEditingController _genderController;
-  
-  bool _isEditing = false;
+
 
   @override
   void initState() {
@@ -28,7 +28,6 @@ class _ProfilePageState extends State<ProfilePage> {
     _lastNameController = TextEditingController();
     _emailController = TextEditingController();
     _phoneController = TextEditingController();
-    _genderController = TextEditingController();
 
     // Load user data from Firestore
     _loadUserData();
@@ -41,98 +40,128 @@ class _ProfilePageState extends State<ProfilePage> {
           .doc(user?.uid)
           .get();
 
-      // Assuming the document contains these fields: firstName, lastName, email, phoneNumber, gender
       setState(() {
         _firstNameController.text = snapshot['firstName'] ?? '';
         _lastNameController.text = snapshot['lastName'] ?? '';
         _emailController.text = snapshot['email'] ?? '';
         _phoneController.text = snapshot['phone'] ?? '';
-        _genderController.text = snapshot['gender'] ?? '';
       });
     }
   }
 
-  Future<void> _updateUserData() async {
-    if (user != null) {
-      try {
-        await FirebaseFirestore.instance.collection('Users').doc(user?.uid).update({
-          'firstName': _firstNameController.text,
-          'lastName': _lastNameController.text,
-          'email': _emailController.text,
-          'phone': _phoneController.text,
-          'gender': _genderController.text,
-        });
-        setState(() {
-          _isEditing = false;
-        });
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update data')));
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Full Name: ${_firstNameController.text} ${_lastNameController.text}'),
-            const SizedBox(height: 10),
-            Text('Email: ${_emailController.text}'),
-            const SizedBox(height: 10),
-            Text('Phone Number: ${_phoneController.text}'),
-            const SizedBox(height: 10),
-            Text('Gender: ${_genderController.text}'),
-            const SizedBox(height: 20),
-            _isEditing
-                ? Column(
-                    children: [
-                      TextField(
-                        controller: _firstNameController,
-                        decoration: const InputDecoration(labelText: 'First Name'),
-                      ),
-                      TextField(
-                        controller: _lastNameController,
-                        decoration: const InputDecoration(labelText: 'Last Name'),
-                      ),
-                      TextField(
-                        controller: _emailController,
-                        decoration: const InputDecoration(labelText: 'Email'),
-                        keyboardType: TextInputType.emailAddress,
-                      ),
-                      TextField(
-                        controller: _phoneController,
-                        decoration: const InputDecoration(labelText: 'Phone Number'),
-                        keyboardType: TextInputType.phone,
-                      ),
-                      TextField(
-                        controller: _genderController,
-                        decoration: const InputDecoration(labelText: 'Gender'),
-                      ),
-                      const SizedBox(height: 20),
-                      ElevatedButton(
-                        onPressed: _updateUserData,
-                        child: const Text('Save Changes'),
-                      ),
-                    ],
-                  )
-                : ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        _isEditing = true;
-                      });
-                    },
-                    child: const Text('Edit Profile'),
-                  ),
-          ],
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
         ),
       ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const CircleAvatar(
+                    radius: 40,
+                    // You might want to load the user's profile image here
+                    child: Icon(Icons.person, size: 40),
+                  ),
+                  const SizedBox(width: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${_firstNameController.text} ${_lastNameController.text}',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      Text('+264 ${_phoneController.text}'), // Assuming Namibia country code
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              const Text('General', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              ListTile(
+              leading: const Icon(Icons.edit),
+              title: const Text('Edit profile'),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const EditProfilePage()),
+                );
+              },
+            ),
+              const SizedBox(height: 16),
+              const Text('App settings', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              ListTile(
+                leading: const Icon(Icons.remove_red_eye_outlined),
+                title: const Text('Theme'),
+                trailing: Switch(
+                  value: Theme.of(context).brightness == Brightness.dark,
+                  onChanged: (bool value) {
+                    // Implement theme switching logic here
+                  },
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.notifications_outlined),
+                title: const Text('Notifications'),
+                trailing: const Text('Allow', style: TextStyle(color: Colors.grey)),
+                onTap: () {
+                  // Implement notifications settings navigation
+                },
+              ),
+              ListTile(
+              leading: const Icon(Icons.language),
+              title: const Text('Language'),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LanguageSecurityPage()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.security_outlined),
+              title: const Text('Security'),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LanguageSecurityPage()),
+                );
+              },
+            ),
+              const SizedBox(height: 24),
+              Center(
+                child: ElevatedButton(
+                  onPressed: () async {
+                    await Auth().signOut();
+                    // Navigator will handle the redirection based on WidgetTree
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue[900], // Match the LOG OUT button color
+                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                  ),
+                  child: const Text('LOG OUT', style: TextStyle(color: Colors.white)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      // Removed the bottomNavigationBar here
     );
   }
 }
