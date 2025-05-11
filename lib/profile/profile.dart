@@ -46,7 +46,7 @@ class _ProfilePageState extends State<ProfilePage> {
         _firstNameController.text = snapshot['firstName'] ?? '';
         _lastNameController.text = snapshot['lastName'] ?? '';
         _emailController.text = snapshot['email'] ?? '';
-        _phoneController.text = snapshot['phoneNumber'] ?? '';
+        _phoneController.text = snapshot['phone'] ?? '';
         _genderController.text = snapshot['gender'] ?? '';
       });
     }
@@ -59,7 +59,7 @@ class _ProfilePageState extends State<ProfilePage> {
           'firstName': _firstNameController.text,
           'lastName': _lastNameController.text,
           'email': _emailController.text,
-          'phoneNumber': _phoneController.text,
+          'phone': _phoneController.text,
           'gender': _genderController.text,
         });
         setState(() {
