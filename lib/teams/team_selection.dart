@@ -12,6 +12,7 @@ class TeamSelectionPage extends StatefulWidget {
 }
 
 class _TeamSelectionPageState extends State<TeamSelectionPage> {
+  // ignore: unused_field
   late Future<List<DocumentSnapshot>> _userTeamsFuture;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _isTeamMenuVisible = false;
@@ -42,10 +43,10 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
 
 
   // Call the fetch function when the page loads
-@override
+  @override
   void initState() {
     super.initState();
-    _userTeamsFuture = _fetchUserTeams();
+    _fetchUserTeams();
   }
 
   void _toggleTeamMenu() {

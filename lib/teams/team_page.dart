@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:hockey_union/home/home_drawer.dart';
 import 'package:hockey_union/profile/player_profile.dart'; 
@@ -29,7 +30,7 @@ class _TeamPageState extends State<TeamPage> {
     });
   }
 
-    @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
@@ -227,6 +228,39 @@ class _AddPlayerPopupState extends State<AddPlayerPopup> {
     }
   }
 
+  Future<void> _addPlayer() async {
+    final firstName = _firstNameController.text.trim();
+    final lastName = _lastNameController.text.trim();
+    final birthday = _birthdayController.text.trim();
+    final gender = _selectedGender;
+    final position = _positionController.text.trim();
+    final jerseyNumber = int.tryParse(_jerseyNumberController.text.trim()) ?? 0;
+    final email = _emailController.text.trim();
+    final phone = int.tryParse(_phoneController.text.trim()) ?? 0;
+
+    if (firstName.isNotEmpty && lastName.isNotEmpty && email.isNotEmpty) {
+      // Save the player data to Firestore
+      await FirebaseFirestore.instance.collection('Player').add({
+        'firstName': firstName,
+        'lastName': lastName,
+        'birthday': birthday,
+        'gender': gender,
+        'position': position,
+        'jerseyNumber': jerseyNumber,
+        'email': email,
+        'phone': phone,
+        'createdAt': Timestamp.now(),
+      });
+
+      Navigator.of(context).pop(); // Close the dialog
+    } else {
+      // Show a message if any field is missing
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all the required fields')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -319,17 +353,7 @@ class _AddPlayerPopupState extends State<AddPlayerPopup> {
           child: const Text('Close'),
         ),
         ElevatedButton(
-          onPressed: () {
-            final firstName = _firstNameController.text.trim();
-            final lastName = _lastNameController.text.trim();
-            if (firstName.isNotEmpty && lastName.isNotEmpty) {
-              Navigator.of(context).pop('$firstName $lastName');
-            } else if (firstName.isNotEmpty) {
-              Navigator.of(context).pop(firstName);
-            } else if (lastName.isNotEmpty) {
-              Navigator.of(context).pop(lastName);
-            }
-          },
+          onPressed: _addPlayer,
           child: const Text('Save'),
         ),
       ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // For date and time formatting
+import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // ✅ Firestore import
 
 class AddNewEventPage extends StatefulWidget {
   const AddNewEventPage({super.key});
@@ -54,26 +55,11 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
           content: SingleChildScrollView(
             child: Column(
               children: <Widget>[
-                ListTile(
-                  title: const Text('Does Not Repeat'),
-                  onTap: () => Navigator.pop(context, 'Does Not Repeat'),
-                ),
-                ListTile(
-                  title: const Text('Daily'),
-                  onTap: () => Navigator.pop(context, 'Daily'),
-                ),
-                ListTile(
-                  title: const Text('Weekly'),
-                  onTap: () => Navigator.pop(context, 'Weekly'),
-                ),
-                ListTile(
-                  title: const Text('Monthly'),
-                  onTap: () => Navigator.pop(context, 'Monthly'),
-                ),
-                ListTile(
-                  title: const Text('Yearly'),
-                  onTap: () => Navigator.pop(context, 'Yearly'),
-                ),
+                ListTile(title: const Text('Does Not Repeat'), onTap: () => Navigator.pop(context, 'Does Not Repeat')),
+                ListTile(title: const Text('Daily'), onTap: () => Navigator.pop(context, 'Daily')),
+                ListTile(title: const Text('Weekly'), onTap: () => Navigator.pop(context, 'Weekly')),
+                ListTile(title: const Text('Monthly'), onTap: () => Navigator.pop(context, 'Monthly')),
+                ListTile(title: const Text('Yearly'), onTap: () => Navigator.pop(context, 'Yearly')),
               ],
             ),
           ),
@@ -88,7 +74,6 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
   }
 
   Future<void> _selectLocation(BuildContext context) async {
-    // Replace with your actual location selection logic (e.g., a dropdown or map)
     final String? location = await showDialog<String>(
       context: context,
       builder: (BuildContext context) {
@@ -100,15 +85,11 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
                 ListTile(title: const Text('Field A'), onTap: () => Navigator.pop(context, 'Field A')),
                 ListTile(title: const Text('Field B'), onTap: () => Navigator.pop(context, 'Field B')),
                 ListTile(title: const Text('Gym'), onTap: () => Navigator.pop(context, 'Gym')),
-                // Add more locations
               ],
             ),
           ),
           actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
+            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
           ],
         );
       },
@@ -121,7 +102,6 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
   }
 
   Future<void> _selectVolunteerAssignment(BuildContext context) async {
-    // Replace with your actual volunteer assignment selection logic
     final String? assignment = await showDialog<String>(
       context: context,
       builder: (BuildContext context) {
@@ -133,16 +113,13 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
                 ListTile(title: const Text('Coach'), onTap: () => Navigator.pop(context, 'Coach')),
                 ListTile(title: const Text('Referee'), onTap: () => Navigator.pop(context, 'Referee')),
                 ListTile(title: const Text('Scorekeeper'), onTap: () => Navigator.pop(context, 'Scorekeeper')),
-                 ListTile(title: const Text('Photographer'), onTap: () => Navigator.pop(context, 'Photgrapher')),
-                  ListTile(title: const Text('Videographer'), onTap: () => Navigator.pop(context, 'Videographer')),
+                ListTile(title: const Text('Photographer'), onTap: () => Navigator.pop(context, 'Photgrapher')),
+                ListTile(title: const Text('Videographer'), onTap: () => Navigator.pop(context, 'Videographer')),
               ],
             ),
           ),
           actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
+            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
           ],
         );
       },
@@ -155,7 +132,6 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
   }
 
   Future<void> _selectDuration(BuildContext context) async {
-    // Replace with your actual duration selection logic (e.g., a dropdown)
     final String? duration = await showDialog<String>(
       context: context,
       builder: (BuildContext context) {
@@ -167,15 +143,11 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
                 ListTile(title: const Text('1 Hour'), onTap: () => Navigator.pop(context, '1 Hour')),
                 ListTile(title: const Text('1.5 Hours'), onTap: () => Navigator.pop(context, '1.5 Hours')),
                 ListTile(title: const Text('2 Hours'), onTap: () => Navigator.pop(context, '2 Hours')),
-                // Add more durations
               ],
             ),
           ),
           actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
+            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
           ],
         );
       },
@@ -184,6 +156,40 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
       setState(() {
         _selectedDuration = duration;
       });
+    }
+  }
+
+  Future<void> _saveEventToFirestore() async {
+    if (_eventNameController.text.isEmpty || _selectedDateTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in required fields.')),
+      );
+      return;
+    }
+
+    final gameData = {
+      'nameOfEvent': _eventNameController.text,
+      'timeZone': _selectedTimeZone ?? 'UTC+1',
+      'date': DateFormat('dd MMMM yyyy HH:mm').format(_selectedDateTime!),
+      'repeats': _repeats,
+      'location': _selectedLocation ?? '',
+      'volunteerAssignments': _selectedVolunteerAssignment ?? '',
+      'duration': _selectedDuration ?? '',
+      'notifyTeam': _notifyTeam,
+      'notes': _notesController.text,
+      'createdAt': Timestamp.now(),
+    };
+
+    try {
+      await FirebaseFirestore.instance.collection('Game').add(gameData);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Game saved successfully!')),
+      );
+      Navigator.of(context).pop();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save game: $e')),
+      );
     }
   }
 
@@ -198,27 +204,11 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
         ),
         actions: <Widget>[
           TextButton(
-            onPressed: () {
-              // Implement cancel logic
-              Navigator.of(context).pop();
-            },
+            onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cancel', style: TextStyle(color: Colors.white)),
           ),
           TextButton(
-            onPressed: () {
-              // Implement save event logic
-              print('Event Name: ${_eventNameController.text}');
-              print('Time Zone: $_selectedTimeZone');
-              print('Date/Time: $_selectedDateTime');
-              print('Repeats: $_repeats');
-              print('Location: $_selectedLocation');
-              print('Volunteer Assignment: $_selectedVolunteerAssignment');
-              print('Duration: $_selectedDuration');
-              print('Notes: ${_notesController.text}');
-              print('Notify Team: $_notifyTeam');
-              // You would typically send this data to your backend or update local state
-              Navigator.of(context).pop(); // Go back after saving
-            },
+            onPressed: _saveEventToFirestore, // ✅ Replaced logic here
             child: const Text('Save', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -251,7 +241,7 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
               ),
             ),
             const SizedBox(height: 16.0),
-            TextField( // Time Zone - Could be a dropdown in a real app
+            TextField(
               decoration: const InputDecoration(
                 labelText: 'Time Zone',
                 border: OutlineInputBorder(),
@@ -259,7 +249,7 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
               ),
               readOnly: true,
               onTap: () {
-                // Implement Time Zone selection
+                // Optional time zone logic
               },
             ),
             const SizedBox(height: 16.0),
@@ -273,11 +263,9 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: <Widget>[
-                    Text(
-                      _selectedDateTime == null
-                          ? 'Please Select'
-                          : DateFormat('yyyy-MM-dd HH:mm').format(_selectedDateTime!),
-                    ),
+                    Text(_selectedDateTime == null
+                        ? 'Please Select'
+                        : DateFormat('yyyy-MM-dd HH:mm').format(_selectedDateTime!)),
                     const Icon(Icons.calendar_today),
                   ],
                 ),
