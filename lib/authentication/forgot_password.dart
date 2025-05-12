@@ -74,6 +74,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   ElevatedButton(
                     onPressed: _isSending ? null : _sendResetEmail,
                     style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF303F9F),
                       padding: const EdgeInsets.symmetric(vertical: 16.0),
                     ),
                     child: _isSending
@@ -82,7 +83,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                             width: 20,
                             child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                           )
-                        : const Text('Send Reset Email', style: TextStyle(fontSize: 16.0)),
+                        : const Text('Send Reset Email', style: TextStyle(fontSize: 16.0, color: Colors.white,)),
                   ),
                   const SizedBox(height: 16.0),
                   if (message != null)

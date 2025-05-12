@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hockey_union/authentication/login.dart';
+import 'package:hockey_union/widget_tree.dart';
 import 'auth.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -25,38 +26,43 @@ class _RegisterPageState extends State<RegisterPage> {
   String? _selectedRole;
   final List<String> _roles = ['Manager', 'Admin', 'Player'];
 
-  Future<void> createUserWithEmailAndPassword() async {
-    if (!_formKey.currentState!.validate()) return;
+    Future<void> createUserWithEmailAndPassword() async {
+      if (!_formKey.currentState!.validate()) return;
 
-    try {
-      final userCred = await Auth().createUserWithEmailAndPassword(
-        fullName: _firstNameController.text,
-        email: _controllerEmail.text,
-        password: _controllerPassword.text,
-      );
+      try {
+        final userCred = await Auth().createUserWithEmailAndPassword(
+          fullName: _firstNameController.text,
+          email: _controllerEmail.text,
+          password: _controllerPassword.text,
+        );
 
-      String fullName = '${_firstNameController.text} ${_lastNameController.text}';
-      await userCred.user?.updateDisplayName(fullName);
+        String fullName = '${_firstNameController.text} ${_lastNameController.text}';
+        await userCred.user?.updateDisplayName(fullName);
 
-      await FirebaseFirestore.instance
-          .collection('Users')
-          .doc(userCred.user?.uid)
-          .set({
-        'uid': userCred.user?.uid,
-        'firstName': _firstNameController.text,
-        'lastName': _lastNameController.text,
-        'email': _controllerEmail.text,
-        'phone': _phoneController.text,
-        'gender': _genderController.text,
-        'role': _selectedRole ?? 'Player',
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+        await FirebaseFirestore.instance
+            .collection('Users')
+            .doc(userCred.user?.uid)
+            .set({
+          'uid': userCred.user?.uid,
+          'firstName': _firstNameController.text,
+          'lastName': _lastNameController.text,
+          'email': _controllerEmail.text,
+          'phone': _phoneController.text,
+          'gender': _genderController.text,
+          'role': _selectedRole ?? 'Player',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
 
-      setState(() {}); // triggers stream in WidgetTree
-    } on FirebaseAuthException catch (e) {
-      setState(() => errorMessage = e.message);
+        // Navigate to WidgetTree after successful registration
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const WidgetTree()),
+        );
+      } on FirebaseAuthException catch (e) {
+        setState(() => errorMessage = e.message);
+      }
     }
-  }
+
 
   Widget _entryField(String label, TextEditingController c,
       {bool obscure = false, TextInputType? keyboard}) {
@@ -155,9 +161,10 @@ class _RegisterPageState extends State<RegisterPage> {
                     ElevatedButton(
                       onPressed: createUserWithEmailAndPassword,
                       style: ElevatedButton.styleFrom(
+                         backgroundColor: const Color(0xFF303F9F),
                         padding: const EdgeInsets.symmetric(vertical: 16.0),
                       ),
-                      child: const Text('SIGN UP', style: TextStyle(fontSize: 16.0)),
+                      child: const Text('SIGN UP', style: TextStyle(fontSize: 16.0, color: Colors.white,)),
                     ),
                     const SizedBox(height: 16.0),
                     TextButton(

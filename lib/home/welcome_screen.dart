@@ -20,7 +20,9 @@ class WelcomeScreen extends StatelessWidget {
               height: 150, // Adjust as needed
             ),
             const SizedBox(height: 40),
-            ElevatedButton(
+            SizedBox(
+            width: 250, 
+            child: ElevatedButton(
               onPressed: () {
                 Navigator.push(
                   context,
@@ -28,8 +30,8 @@ class WelcomeScreen extends StatelessWidget {
                 );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF303F9F), // Match the button color
-                padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                backgroundColor: const Color(0xFF303F9F),
+                padding: const EdgeInsets.symmetric(vertical: 15), // Remove horizontal padding
                 textStyle: const TextStyle(fontSize: 18),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8.0),
@@ -40,6 +42,8 @@ class WelcomeScreen extends StatelessWidget {
                 style: TextStyle(color: Colors.white),
               ),
             ),
+          ),
+
             const SizedBox(height: 20),
             TextButton(
               onPressed: () {

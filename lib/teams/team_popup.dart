@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class CreateTeamPopup extends StatefulWidget {
   const CreateTeamPopup({super.key});
@@ -14,10 +16,36 @@ class _CreateTeamPopupState extends State<CreateTeamPopup> {
   String? _selectedCountry;
   String? _selectedTimeZone;
 
-  // Example lists for dropdowns - replace with your actual data
   final List<String> _ageRanges = ['U/10', 'U/12', 'U/14', 'U/16', 'U/19', 'U/20', 'Adult'];
-  final List<String> _countries = ['Namibia', 'South Africa', 'Botswana', 'Zimbabwe', 'Angola']; // Example countries
-  final List<String> _timeZones = ['UTC+00:00', 'UTC+01:00', 'UTC+02:00']; // Example time zones
+  final List<String> _countries = ['Namibia', 'South Africa', 'Botswana', 'Zimbabwe', 'Angola'];
+  final List<String> _timeZones = ['UTC+00:00', 'UTC+01:00', 'UTC+02:00'];
+
+  Future<void> _saveTeamToFirestore() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+
+    if (uid == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error: User not signed in')),
+      );
+      return;
+    }
+
+      await FirebaseFirestore.instance.collection('Teams').add({
+      'teamName': _teamNameController.text,
+      'teamAge': _selectedTeamAge,
+      'country': _selectedCountry,
+      'timeZone': _selectedTimeZone,
+      'uid': uid, // Store the authenticated user's UID here
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Team created successfully')),
+    );
+
+    Navigator.of(context).pop(); // Close the popup
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,11 +61,15 @@ class _CreateTeamPopupState extends State<CreateTeamPopup> {
             },
           ),
         ],
-      ),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
+      ),   
+      content: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.7, // 70% of screen height
+        ),
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               TextFormField(
@@ -46,12 +78,8 @@ class _CreateTeamPopupState extends State<CreateTeamPopup> {
                   labelText: 'Team Name',
                   border: OutlineInputBorder(),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter team name';
-                  }
-                  return null;
-                },
+                validator: (value) =>
+                    value == null || value.isEmpty ? 'Please enter team name' : null,
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
@@ -66,17 +94,9 @@ class _CreateTeamPopupState extends State<CreateTeamPopup> {
                     child: Text(value),
                   );
                 }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _selectedTeamAge = newValue;
-                  });
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please select team age';
-                  }
-                  return null;
-                },
+                onChanged: (newValue) => setState(() => _selectedTeamAge = newValue),
+                validator: (value) =>
+                    value == null || value.isEmpty ? 'Please select team age' : null,
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
@@ -91,17 +111,9 @@ class _CreateTeamPopupState extends State<CreateTeamPopup> {
                     child: Text(value),
                   );
                 }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _selectedCountry = newValue;
-                  });
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please select country';
-                  }
-                  return null;
-                },
+                onChanged: (newValue) => setState(() => _selectedCountry = newValue),
+                validator: (value) =>
+                    value == null || value.isEmpty ? 'Please select country' : null,
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
@@ -116,27 +128,15 @@ class _CreateTeamPopupState extends State<CreateTeamPopup> {
                     child: Text(value),
                   );
                 }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _selectedTimeZone = newValue;
-                  });
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please select time zone';
-                  }
-                  return null;
-                },
+                onChanged: (newValue) => setState(() => _selectedTimeZone = newValue),
+                validator: (value) =>
+                    value == null || value.isEmpty ? 'Please select time zone' : null,
               ),
               const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   if (_formKey.currentState!.validate()) {
-                    // Implement the logic to save the team data
-                    String teamName = _teamNameController.text;
-                    print('Team Name: $teamName, Age: $_selectedTeamAge, Country: $_selectedCountry, Time Zone: $_selectedTimeZone');
-                    Navigator.of(context).pop(); // Close the popup after saving
-                    // You might want to pass the new team data back to the previous screen
+                    await _saveTeamToFirestore();
                   }
                 },
                 style: ElevatedButton.styleFrom(
@@ -146,6 +146,7 @@ class _CreateTeamPopupState extends State<CreateTeamPopup> {
                 child: const Text('SAVE', style: TextStyle(color: Colors.white)),
               ),
             ],
+          ),
           ),
         ),
       ),

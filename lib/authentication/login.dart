@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hockey_union/authentication/forgot_password.dart';
 import 'package:hockey_union/authentication/register.dart';
+import 'package:hockey_union/widget_tree.dart';
 import 'auth.dart';
 
 class LoginPage extends StatefulWidget {
@@ -19,7 +20,7 @@ class _LoginPageState extends State<LoginPage> {
   String? errorMessage = '';
   bool _isPasswordVisible = false;
 
-  Future<void> signInWithEmailAndPassword() async {
+    Future<void> signInWithEmailAndPassword() async {
     if (!_formKey.currentState!.validate()) return;
 
     try {
@@ -27,11 +28,17 @@ class _LoginPageState extends State<LoginPage> {
         email: _controllerEmail.text,
         password: _controllerPassword.text,
       );
-      setState(() {}); // this will trigger rebuild and the stream will redirect
+
+      // Navigate to WidgetTree after successful login
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const WidgetTree()),
+      );
     } on FirebaseAuthException catch (e) {
       setState(() => errorMessage = e.message);
     }
   }
+
 
   Widget _entryField(String label, TextEditingController c,
       {bool obscure = false, TextInputType? keyboard}) {
@@ -106,10 +113,14 @@ class _LoginPageState extends State<LoginPage> {
                     ElevatedButton(
                       onPressed: signInWithEmailAndPassword,
                       style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF303F9F),
                         padding: const EdgeInsets.symmetric(vertical: 16.0),
                       ),
-                      child: const Text('LOGIN', style: TextStyle(fontSize: 16.0)),
-                    ),
+                      child: const Text(
+                          'LOGIN',
+                          style: TextStyle(fontSize: 16.0, color: Colors.white), // 👈 Optional: text color
+                        ),
+                      ),
                     const SizedBox(height: 16.0),
                     Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch, // Make buttons take full width

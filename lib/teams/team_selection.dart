@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hockey_union/home/home_drawer.dart';
-import 'package:hockey_union/profile/team_profile.dart'; // Adjust the import path
+// Adjust the import path
 
 class TeamSelectionPage extends StatefulWidget {
   const TeamSelectionPage({super.key});
@@ -10,8 +12,41 @@ class TeamSelectionPage extends StatefulWidget {
 }
 
 class _TeamSelectionPageState extends State<TeamSelectionPage> {
+  late Future<List<DocumentSnapshot>> _userTeamsFuture;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _isTeamMenuVisible = false;
+  List<DocumentSnapshot> _userTeams = []; // List to store teams for the current user
+
+  // Function to fetch teams for the current user
+   Future<List<DocumentSnapshot>> _fetchUserTeams() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+
+    if (uid == null) {
+      print('No user is logged in');
+      return [];
+    }
+
+    try {
+      final teamsSnapshot = await FirebaseFirestore.instance
+          .collection('Teams')
+          .where('uid', isEqualTo: uid) // Retrieve teams for the logged-in user
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      return teamsSnapshot.docs;
+    } catch (e) {
+      print('Error fetching teams: $e');
+      return [];
+    }
+  }
+
+
+  // Call the fetch function when the page loads
+@override
+  void initState() {
+    super.initState();
+    _userTeamsFuture = _fetchUserTeams();
+  }
 
   void _toggleTeamMenu() {
     setState(() {
@@ -62,7 +97,32 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
       drawer: const HomeDrawer(),
       body: Stack(
         children: [
-          // Main content of the Teams page (you can add your team listing here)
+          // Main content of the Teams page
+          // Display user's teams
+          if (_userTeams.isEmpty)
+            const Center(child: Text('No teams available. Create one!'))
+          else
+            ListView.builder(
+              itemCount: _userTeams.length,
+              itemBuilder: (context, index) {
+                final teamData = _userTeams[index].data() as Map<String, dynamic>;
+                final teamName = teamData['teamName'] ?? 'Unnamed Team';
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.grey[300],
+                    child: const Icon(Icons.image, color: Colors.grey),
+                  ),
+                  title: Text(teamName),
+                  onTap: () {
+                    setState(() {
+                      _isTeamMenuVisible = false;
+                      // Navigate to team profile or perform other actions
+                    });
+                    print('$teamName selected');
+                  },
+                );
+              },
+            ),
           // Pop-up menu for team selection
           if (_isTeamMenuVisible)
             GestureDetector(
@@ -71,10 +131,8 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
               child: Align(
                 alignment: Alignment.bottomCenter,
                 child: SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0, 1),
-                    end: Offset.zero,
-                  ).animate(CurvedAnimation(
+                  position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
+                      .animate(CurvedAnimation(
                     parent: ModalRoute.of(context)!.animation!,
                     curve: Curves.easeInOut,
                     reverseCurve: Curves.easeOut,
@@ -86,7 +144,7 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
                       reverseCurve: Curves.easeOut,
                     ),
                     child: Container(
-                      margin: const EdgeInsets.only(bottom: 450.0), // To position above the blue bar
+                      margin: const EdgeInsets.only(bottom: 450.0),
                       decoration: const BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.vertical(top: Radius.circular(10.0)),
@@ -115,52 +173,13 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
                                 const Text('My teams', style: TextStyle(fontWeight: FontWeight.bold)),
                                 TextButton(
                                   onPressed: () async {
-                                    // Assuming you have a way to get the currently selected team's data
-                                    final selectedTeamName = 'Dunes'; // Replace with actual selected team name
-                                    final selectedFoundedDate = DateTime(2025, 2, 20); // Replace with actual founded date
-
-                                    final result = await showDialog(
-                                      context: context,
-                                      builder: (BuildContext context) {
-                                        return EditTeamPopup(
-                                          initialTeamName: selectedTeamName,
-                                          initialFoundedDate: selectedFoundedDate,
-                                        );
-                                      },
-                                    );
-
-                                    // Handle the result when the EditTeamPopup is closed
-                                    if (result != null && result is Map) {
-                                      final newName = result['name'];
-                                      final newFoundedDate = result['founded'];
-                                      print('New team name: $newName, New founded date: $newFoundedDate');
-                                      // Update your team data with the new values
-                                    }
+                                    // Handle team editing here
                                   },
                                   child: const Text('Edit', style: TextStyle(color: Colors.black87)),
                                 ),
                               ],
                             ),
                           ),
-                          const Padding(
-                            padding: EdgeInsets.all(16.0),
-                            child: Text('Active teams', style: TextStyle(fontWeight: FontWeight.bold)),
-                          ),
-                          ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: Colors.grey[300],
-                              child: const Icon(Icons.image, color: Colors.grey),
-                            ),
-                            title: const Text('Dunes'),
-                            onTap: () {
-                              setState(() {
-                                _isTeamMenuVisible = false;
-                                // Update the selected team if needed
-                              });
-                              print('Dunes selected');
-                            },
-                          ),
-                          // Add more team listings here
                         ],
                       ),
                     ),

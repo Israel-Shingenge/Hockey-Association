@@ -32,6 +32,7 @@ class _ProfilePageState extends State<ProfilePage> {
     // Load user data from Firestore
     _loadUserData();
   }
+  
 
   Future<void> _loadUserData() async {
     if (user != null) {
@@ -154,7 +155,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     backgroundColor: Colors.blue[900], // Match the LOG OUT button color
                     padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
                   ),
-                  child: const Text('LOG OUT', style: TextStyle(color: Colors.white)),
+                  child: const Text('SIGN OUT', style: TextStyle(color: Colors.white)),
                 ),
               ),
             ],
