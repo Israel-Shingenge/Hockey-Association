@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+/*import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
 class WelcomePage extends StatefulWidget {
@@ -69,6 +69,65 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text("Home")),
       body: const Center(child: Text("Welcome to Namibia Hockey Union")),
+    );
+  }
+}*/
+
+import 'package:flutter/material.dart';
+import 'package:video_player/video_player.dart';
+import 'package:hockey_union/widget_tree.dart';
+
+class WelcomeScreen extends StatefulWidget {
+  const WelcomeScreen({super.key});
+
+  @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  late VideoPlayerController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = VideoPlayerController.asset('assets/videos/welcome.mp4')
+      ..initialize().then((_) {
+        _controller.play();
+        _controller.setLooping(false); // No looping
+        setState(() {});
+      });
+
+    _controller.addListener(() {
+      if (_controller.value.position >= _controller.value.duration &&
+          !_controller.value.isPlaying) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const WidgetTree()),
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body:
+          _controller.value.isInitialized
+              ? Center(
+                child: AspectRatio(
+                  aspectRatio: _controller.value.aspectRatio,
+                  child: VideoPlayer(_controller),
+                ),
+              )
+              : const Center(child: CircularProgressIndicator()),
     );
   }
 }

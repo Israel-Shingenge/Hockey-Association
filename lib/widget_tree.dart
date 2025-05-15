@@ -1,8 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:hockey_union/authentication/auth.dart';
-import 'package:hockey_union/home/home_page.dart';
-import 'package:hockey_union/authentication/login.dart';
 import 'package:flutter/material.dart';
+import 'package:hockey_union/authentication/auth.dart';
+import 'package:hockey_union/authentication/login.dart';
+import 'package:hockey_union/widgets/role_widget_tree.dart';
 
 class WidgetTree extends StatefulWidget {
   const WidgetTree({super.key});
@@ -20,7 +20,7 @@ class _WidgetTreeState extends State<WidgetTree> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         } else if (snapshot.hasData) {
-          return  HomePage();
+          return const RoleWidgetTree();
         } else {
           return const LoginPage();
         }
@@ -28,4 +28,3 @@ class _WidgetTreeState extends State<WidgetTree> {
     );
   }
 }
-
