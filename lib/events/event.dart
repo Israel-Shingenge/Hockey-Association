@@ -54,6 +54,7 @@ class EventPage extends StatelessWidget {
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hockey_union/home/home_drawer.dart';
+import 'package:hockey_union/home/home_drawer.dart';
 
 class EventDetailsPage extends StatelessWidget {
   final String eventId;
