@@ -1,10 +1,9 @@
-// lib/login_page.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:hockey_union/authentication/auth.dart';
 import 'package:hockey_union/authentication/forgot_password.dart';
 import 'package:hockey_union/authentication/register.dart';
 import 'package:hockey_union/widget_tree.dart';
-import 'auth.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -20,7 +19,7 @@ class _LoginPageState extends State<LoginPage> {
   String? errorMessage = '';
   bool _isPasswordVisible = false;
 
-    Future<void> signInWithEmailAndPassword() async {
+  Future<void> signInWithEmailAndPassword() async {
     if (!_formKey.currentState!.validate()) return;
 
     try {
@@ -29,7 +28,6 @@ class _LoginPageState extends State<LoginPage> {
         password: _controllerPassword.text,
       );
 
-      // Navigate to WidgetTree after successful login
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const WidgetTree()),
@@ -39,9 +37,12 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-
-  Widget _entryField(String label, TextEditingController c,
-      {bool obscure = false, TextInputType? keyboard}) {
+  Widget _entryField(
+    String label,
+    TextEditingController c, {
+    bool obscure = false,
+    TextInputType? keyboard,
+  }) {
     final isPassword = label.toLowerCase() == 'password';
 
     return TextFormField(
@@ -49,28 +50,26 @@ class _LoginPageState extends State<LoginPage> {
       obscureText: isPassword ? !_isPasswordVisible : obscure,
       keyboardType: keyboard,
       decoration: InputDecoration(
-        hintText: 'Enter $label', // Changed from labelText to hintText
-        border: const OutlineInputBorder(), // Added border
-        suffixIcon: isPassword
-            ? IconButton(
-                icon: Icon(
-                    _isPasswordVisible ? Icons.visibility : Icons.visibility_off),
-                onPressed: () {
-                  setState(() {
-                    _isPasswordVisible = !_isPasswordVisible;
-                  });
-                },
-              )
-            : null,
+        hintText: 'Enter $label',
+        border: const OutlineInputBorder(),
+        suffixIcon:
+            isPassword
+                ? IconButton(
+                  icon: Icon(
+                    _isPasswordVisible
+                        ? Icons.visibility
+                        : Icons.visibility_off,
+                  ),
+                  onPressed:
+                      () => setState(
+                        () => _isPasswordVisible = !_isPasswordVisible,
+                      ),
+                )
+                : null,
       ),
-      validator: (value) => value == null || value.isEmpty ? 'Enter $label' : null,
+      validator:
+          (value) => value == null || value.isEmpty ? 'Enter $label' : null,
     );
-  }
-
-  Widget _errorMessage() {
-    return errorMessage == null || errorMessage == ''
-        ? const SizedBox.shrink()
-        : Text(errorMessage!, style: const TextStyle(color: Colors.red));
   }
 
   @override
@@ -81,70 +80,76 @@ class _LoginPageState extends State<LoginPage> {
           padding: const EdgeInsets.all(24.0),
           child: Card(
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16.0),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Padding(
               padding: const EdgeInsets.all(24.0),
               child: Form(
                 key: _formKey,
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
+                  children: [
                     const Text(
                       'Login',
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 28.0, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    const SizedBox(height: 8.0),
+                    const SizedBox(height: 8),
                     const Text(
                       'Hello! Welcome back',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.grey),
                     ),
-                    const SizedBox(height: 24.0),
-                    _entryField('Email', _controllerEmail,
-                        keyboard: TextInputType.emailAddress),
-                    const SizedBox(height: 16.0),
+                    const SizedBox(height: 24),
+                    _entryField(
+                      'Email',
+                      _controllerEmail,
+                      keyboard: TextInputType.emailAddress,
+                    ),
+                    const SizedBox(height: 16),
                     _entryField('Password', _controllerPassword, obscure: true),
-                    const SizedBox(height: 16.0),
-                    _errorMessage(),
-                    const SizedBox(height: 24.0),
+                    const SizedBox(height: 16),
+                    if (errorMessage != null && errorMessage!.isNotEmpty)
+                      Text(
+                        errorMessage!,
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    const SizedBox(height: 24),
                     ElevatedButton(
                       onPressed: signInWithEmailAndPassword,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF303F9F),
+                        backgroundColor: const Color(0xFF060f7a),
                         padding: const EdgeInsets.symmetric(vertical: 16.0),
                       ),
                       child: const Text(
-                          'LOGIN',
-                          style: TextStyle(fontSize: 16.0, color: Colors.white), // 👈 Optional: text color
-                        ),
+                        'LOGIN',
+                        style: TextStyle(color: Colors.white),
                       ),
-                    const SizedBox(height: 16.0),
-                    Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch, // Make buttons take full width
-                    children: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(
+                    ),
+                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed:
+                          () => Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => const RegisterPage()), // Navigate to RegisterPage
-                          );
-                        },
-                        child: const Text('Don\'t have an account? Sign Up', textAlign: TextAlign.center,),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const ForgotPasswordPage()),
-                        ),
-                        child: const Text('Forgot your password? Reset', textAlign: TextAlign.center,),
-                      ),
-                    ],
-                  ),
+                              builder: (context) => const RegisterPage(),
+                            ),
+                          ),
+                      child: const Text('Don\'t have an account? Sign Up'),
+                    ),
+                    TextButton(
+                      onPressed:
+                          () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ForgotPasswordPage(),
+                            ),
+                          ),
+                      child: const Text('Forgot your password? Reset'),
+                    ),
                   ],
                 ),
               ),
