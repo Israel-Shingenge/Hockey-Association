@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+/*import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:hockey_union/home/home_drawer.dart';
 
@@ -44,6 +44,61 @@ class EventPage extends StatelessWidget {
                 ),
               );
             },
+          );
+        },
+      ),
+    );
+  }
+}*/
+
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:hockey_union/home/home_drawer.dart';
+
+class EventDetailsPage extends StatelessWidget {
+  final String eventId;
+
+  const EventDetailsPage({super.key, required this.eventId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      drawer: const HomeDrawer(),
+      appBar: AppBar(title: const Text('Event Details')),
+      body: FutureBuilder<DocumentSnapshot>(
+        future:
+            FirebaseFirestore.instance.collection('Game').doc(eventId).get(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final event = snapshot.data?.data() as Map<String, dynamic>?;
+
+          if (event == null) {
+            return const Center(child: Text('Event not found.'));
+          }
+
+          return Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: ListView(
+              children: [
+                Text(
+                  event['nameOfEvent'] ?? '',
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text('Date: ${event['date'] ?? ''}'),
+                Text('Time Zone: ${event['timeZone'] ?? ''}'),
+                Text('Location: ${event['location'] ?? ''}'),
+                Text('Duration: ${event['duration'] ?? ''}'),
+                const SizedBox(height: 12),
+                Text('Notes: ${event['notes'] ?? 'None'}'),
+                Text('Volunteer: ${event['volunteerAssignments'] ?? 'None'}'),
+              ],
+            ),
           );
         },
       ),
