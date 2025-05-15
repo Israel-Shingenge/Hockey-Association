@@ -1,69 +1,74 @@
-// lib/welcome_screen.dart
 import 'package:flutter/material.dart';
-import 'package:hockey_union/widget_tree.dart';
+import 'package:video_player/video_player.dart';
 
+class WelcomePage extends StatefulWidget {
+  const WelcomePage({super.key});
 
-class WelcomeScreen extends StatelessWidget {
-  const WelcomeScreen({super.key});
+  @override
+  State<WelcomePage> createState() => _WelcomePageState();
+}
+
+class _WelcomePageState extends State<WelcomePage> {
+  late VideoPlayerController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Load the video from assets
+    _controller = VideoPlayerController.asset('assets/videos/welcome.mp4')
+      ..initialize().then((_) {
+        // Play the video once it's loaded
+        _controller.play();
+        _controller.setLooping(true);
+        setState(() {});
+      });
+
+    // When the video ends, navigate to the HomeScreen
+    _controller.addListener(() {
+      if (_controller.value.position == _controller.value.duration) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    // Dispose the controller to free resources
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Image.asset(
-              'assets/images/NHU.png', // Same logo as splash screen
-              width: 150, // Adjust as needed
-              height: 150, // Adjust as needed
-            ),
-            const SizedBox(height: 40),
-            SizedBox(
-            width: 250, 
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const WidgetTree()),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF303F9F),
-                padding: const EdgeInsets.symmetric(vertical: 15), // Remove horizontal padding
-                textStyle: const TextStyle(fontSize: 18),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
+      // Display the video if it's initialized
+      body: _controller.value.isInitialized
+          ? Center(
+              child: AspectRatio(
+                aspectRatio: _controller.value.aspectRatio,
+                child: VideoPlayer(_controller),
               ),
-              child: const Text(
-                'SIGN UP',
-                style: TextStyle(color: Colors.white),
-              ),
+            )
+          : const Center(
+              child: CircularProgressIndicator(), // Show loading indicator
             ),
-          ),
+    );
+  }
+}
 
-            const SizedBox(height: 20),
-            TextButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const WidgetTree()),
-                );
-              },
-              child: const Text(
-                'ALREADY HAVE AN ACCOUNT?',
-                style: TextStyle(
-                  color: Color(0xFF303F9F), // Match the text color
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+// Simple placeholder screen shown after the video ends
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("Home")),
+      body: const Center(child: Text("Welcome to Namibia Hockey Union")),
     );
   }
 }
