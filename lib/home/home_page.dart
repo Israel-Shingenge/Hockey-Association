@@ -1,11 +1,13 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hockey_union/authentication/auth.dart';
 import 'package:flutter/material.dart';
+import 'package:hockey_union/events/create_event.dart';
+import 'package:hockey_union/teams/team_page.dart';
 import 'home_drawer.dart';
-import 'package:hockey_union/teams/team_popup.dart';
+import 'package:hockey_union/teams/create_team.dart';
 
 class HomePage extends StatefulWidget {
-  HomePage({super.key});
+  const HomePage({super.key});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -46,7 +48,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _showAddPopupMenu() {
+ void _showAddPopupMenu() {
     showMenu(
       context: context,
       position: const RelativeRect.fromLTRB(
@@ -88,18 +90,20 @@ class _HomePageState extends State<HomePage> {
       ],
     ).then((value) {
       if (value == 'team') {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return const CreateTeamPopup();
-          },
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const CreateTeamPage()),
         );
       } else if (value == 'event') {
-        // Navigate to create event page/popup
-        print('Create Event');
+         Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const EventsPage()),
+        );
       } else if (value == 'player') {
-        // Navigate to create player page/popup
-        print('Create Player');
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const TeamPage()),
+        );
       }
     });
   }
@@ -117,7 +121,7 @@ class _HomePageState extends State<HomePage> {
         ),
         title: Center(
           child: Image.asset(
-            'assets/images/NHU.png', // Replace with your small logo asset path
+            'assets/images/NHU.png', 
             height: 30,
           ),
         ),

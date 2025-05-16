@@ -1,8 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:hockey_union/home/home_drawer.dart';
-import 'package:hockey_union/profile/player_profile.dart'; 
-import 'package:hockey_union/teams/team_selection.dart';
+import 'package:hockey_union/profile/player_profile.dart';
+import 'package:hockey_union/teams/add_player.dart';
+import 'package:hockey_union/teams/view_teams.dart';
 
 class TeamPage extends StatefulWidget {
   const TeamPage({super.key});
@@ -14,14 +14,15 @@ class TeamPage extends StatefulWidget {
 class _TeamPageState extends State<TeamPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final List<String> _players = ['John Doe', 'Jack Joe']; // Initial list of players
+  // ignore: unused_field
+  final String _selectedLeague = 'Dunes'; // Initial league selection
 
-  void _showAddPlayerPopup() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return const AddPlayerPopup();
-      },
+  void _showAddPlayerPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AddPlayerPage()),
     ).then((newPlayerName) {
+      // You might want to refresh the player list here if needed after adding a player
       if (newPlayerName != null && newPlayerName is String && newPlayerName.isNotEmpty) {
         setState(() {
           _players.add(newPlayerName);
@@ -71,28 +72,34 @@ class _TeamPageState extends State<TeamPage> {
               );
             },
             child: Container(
+              height: 50.0,
               color: Colors.blue[900],
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
-                    child: Row(
-                      children: [
-                        const Text(
-                          'Dunes',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                        ),
-                        const Icon(Icons.arrow_drop_down, color: Colors.white),
-                      ],
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center, // Center the children horizontally
+                  children: [
+                    const Text(
+                      'Dunes',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                     ),
-                  ),
+                    const SizedBox(width: 8.0), // Add some spacing between text and icon
+                    const Icon(Icons.arrow_drop_down, color: Colors.white),
+                  ],
+                ),
+              ),
                   // You might add a filter or search icon here later
                 ],
               ),
             ),
           ),
         ),
+        actions: const [
+          SizedBox(width: 56),
+        ],
       ),
       drawer: const HomeDrawer(),
       body: SingleChildScrollView(
@@ -122,7 +129,7 @@ class _TeamPageState extends State<TeamPage> {
                   ),
                   const SizedBox(height: 16.0),
                   ElevatedButton(
-                    onPressed: _showAddPlayerPopup,
+                    onPressed: _showAddPlayerPage,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue[900],
                       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
@@ -193,170 +200,6 @@ class _TeamPageState extends State<TeamPage> {
           ),
         ),
       ),
-    );
-  }
-}
-
-class AddPlayerPopup extends StatefulWidget {
-  const AddPlayerPopup({super.key});
-
-  @override
-  State<AddPlayerPopup> createState() => _AddPlayerPopupState();
-}
-
-class _AddPlayerPopupState extends State<AddPlayerPopup> {
-  final _firstNameController = TextEditingController();
-  final _lastNameController = TextEditingController();
-  final _birthdayController = TextEditingController();
-  String? _selectedGender;
-  final _positionController = TextEditingController();
-  final _jerseyNumberController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _phoneController = TextEditingController();
-
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-    );
-    if (picked != null) {
-      setState(() {
-        _birthdayController.text = "${picked.day}/${picked.month}/${picked.year}";
-      });
-    }
-  }
-
-  Future<void> _addPlayer() async {
-    final firstName = _firstNameController.text.trim();
-    final lastName = _lastNameController.text.trim();
-    final birthday = _birthdayController.text.trim();
-    final gender = _selectedGender;
-    final position = _positionController.text.trim();
-    final jerseyNumber = int.tryParse(_jerseyNumberController.text.trim()) ?? 0;
-    final email = _emailController.text.trim();
-    final phone = int.tryParse(_phoneController.text.trim()) ?? 0;
-
-    if (firstName.isNotEmpty && lastName.isNotEmpty && email.isNotEmpty) {
-      // Save the player data to Firestore
-      await FirebaseFirestore.instance.collection('Player').add({
-        'firstName': firstName,
-        'lastName': lastName,
-        'birthday': birthday,
-        'gender': gender,
-        'position': position,
-        'jerseyNumber': jerseyNumber,
-        'email': email,
-        'phone': phone,
-        'createdAt': Timestamp.now(),
-      });
-
-      Navigator.of(context).pop(); // Close the dialog
-    } else {
-      // Show a message if any field is missing
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all the required fields')),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Add Player Details'),
-      content: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            const Text('Player details', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8.0),
-            TextField(
-              controller: _firstNameController,
-              decoration: const InputDecoration(labelText: 'First Name'),
-            ),
-            TextField(
-              controller: _lastNameController,
-              decoration: const InputDecoration(labelText: 'Last Name'),
-            ),
-            TextField(
-              controller: _birthdayController,
-              decoration: InputDecoration(
-                labelText: 'Birthday',
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.calendar_today),
-                  onPressed: () => _selectDate(context),
-                ),
-              ),
-              readOnly: true,
-              onTap: () => _selectDate(context),
-            ),
-            const Text('Gender'),
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: RadioListTile<String>(
-                    title: const Text('M'),
-                    value: 'M',
-                    groupValue: _selectedGender,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedGender = value;
-                      });
-                    },
-                  ),
-                ),
-                Expanded(
-                  child: RadioListTile<String>(
-                    title: const Text('F'),
-                    value: 'F',
-                    groupValue: _selectedGender,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedGender = value;
-                      });
-                    },
-                  ),
-                ),
-              ],
-            ),
-            TextField(
-              controller: _positionController,
-              decoration: const InputDecoration(labelText: 'Position'),
-            ),
-            TextField(
-              controller: _jerseyNumberController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Jersey number'),
-            ),
-            const SizedBox(height: 16.0),
-            const Text('Contact information', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8.0),
-            TextField(
-              controller: _emailController,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(labelText: 'Email'),
-            ),
-            TextField(
-              controller: _phoneController,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: 'Phone'),
-            ),
-          ],
-        ),
-      ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-          child: const Text('Close'),
-        ),
-        ElevatedButton(
-          onPressed: _addPlayer,
-          child: const Text('Save'),
-        ),
-      ],
     );
   }
 }

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:hockey_union/aboutUs/contact_us.dart';
+import 'package:hockey_union/fixtures/fixtures.dart';
+import 'package:hockey_union/news/news.dart';
 import 'package:hockey_union/teams/team_page.dart';
-import 'package:hockey_union/events/event.dart';
+import 'package:hockey_union/events/create_event.dart';
 
 class HomeDrawer extends StatelessWidget {
   const HomeDrawer({super.key});
@@ -120,35 +123,50 @@ class HomeDrawer extends StatelessWidget {
                 isSelected: currentRoute == '/teams', // You'll need to define this route
               ),
                 _buildDrawerItem(
-                  context: context, // Pass the context here
-                  icon: Icons.search,
-                  title: 'Search',
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    // Handle Search navigation
-                  },
-                  isSelected: currentRoute == '/search', // You'll need to define this route
-                ),
+                context: context, // Pass the context here
+                icon: Icons.list_alt,
+                title: 'Fixtures',
+                onTap: () {
+                  Navigator.of(context).pop(); // Close the drawer
+                  if (currentRoute != '/fixtures') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const FixturesPage()),
+                    );
+                  }
+                },
+                isSelected: currentRoute == '/fixtures', // You'll need to define this route
+              ),
                 _buildDrawerItem(
-                  context: context, // Pass the context here
-                  icon: Icons.article,
-                  title: 'News',
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    // Handle News navigation
-                  },
-                  isSelected: currentRoute == '/news', // You'll need to define this route
-                ),
-                _buildDrawerItem(
-                  context: context, // Pass the context here
-                  icon: Icons.phone,
-                  title: 'Contact Us',
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    // Handle Contact Us navigation
-                  },
-                  isSelected: currentRoute == '/contact_us', // You'll need to define this route
-                ),
+                context: context, // Pass the context here
+                icon: Icons.newspaper,
+                title: 'News',
+                onTap: () {
+                  Navigator.of(context).pop(); // Close the drawer
+                  if (currentRoute != '/news') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const NewsPage()),
+                    );
+                  }
+                },
+                isSelected: currentRoute == '/news', // You'll need to define this route
+              ),
+                  _buildDrawerItem(
+                context: context, // Pass the context here
+                icon: Icons.group,
+                title: 'Contact Us',
+                onTap: () {
+                  Navigator.of(context).pop(); // Close the drawer
+                  if (currentRoute != '/contactUs') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ContactUsPage()),
+                    );
+                  }
+                },
+                isSelected: currentRoute == '/contactUs', // You'll need to define this route
+              ),
               ],
             ),
           ),
