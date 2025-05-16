@@ -31,7 +31,7 @@ class _TeamPageState extends State<TeamPage> {
       context,
       MaterialPageRoute(builder: (_) => const TeamSelectionPage()),
     );
-    if (selected != null) {
+    if (selected != null && mounted) {
       // You can reload data or update state
       debugPrint('Team selected: $selected');
     }

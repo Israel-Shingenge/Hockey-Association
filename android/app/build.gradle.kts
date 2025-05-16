@@ -9,7 +9,7 @@ plugins {
 android {
     namespace = "com.example.hockey_union"
     compileSdk = flutter.compileSdkVersion
-     ndkVersion = "29.0.13113456"
+     ndkVersion = "27.2.12479018"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
