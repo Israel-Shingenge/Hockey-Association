@@ -94,7 +94,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     _controller = VideoPlayerController.asset('assets/videos/welcome.mp4')
       ..initialize().then((_) {
         _controller.play();
-        _controller.setLooping(true); // No looping
+        _controller.setLooping(false); // No looping
         setState(() {});
       });
 
@@ -118,7 +118,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.green,
       body:
           _controller.value.isInitialized
               ? Center(
