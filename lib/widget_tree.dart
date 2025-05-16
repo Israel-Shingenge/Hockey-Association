@@ -2,7 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:hockey_union/authentication/auth.dart';
 import 'package:hockey_union/authentication/login.dart';
-import 'package:hockey_union/widgets/role_widget_tree.dart';
+
+import 'role_widget_tree.dart';
 
 class WidgetTree extends StatefulWidget {
   const WidgetTree({super.key});

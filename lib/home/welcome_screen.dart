@@ -94,7 +94,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     _controller = VideoPlayerController.asset('assets/videos/welcome.mp4')
       ..initialize().then((_) {
         _controller.play();
-        _controller.setLooping(false); // No looping
+        _controller.setLooping(true); // No looping
         setState(() {});
       });
 

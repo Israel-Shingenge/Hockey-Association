@@ -34,11 +34,12 @@ class _AddGamePageState extends State<AddGamePage> {
       lastDate: DateTime(2035),
     );
 
-    if (pickedDate != null) {
+    if (pickedDate != null && mounted) {
       final TimeOfDay? pickedTime = await showTimePicker(
         context: context,
         initialTime: TimeOfDay.now(),
       );
+
       if (pickedTime != null) {
         setState(() {
           _selectedDateTime = DateTime(
@@ -55,9 +56,11 @@ class _AddGamePageState extends State<AddGamePage> {
 
   Future<void> _saveGame() async {
     if (!_formKey.currentState!.validate() || _selectedDateTime == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please complete all required fields')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please complete all required fields')),
+        );
+      }
       return;
     }
 
@@ -77,14 +80,17 @@ class _AddGamePageState extends State<AddGamePage> {
         'createdAt': Timestamp.now(),
       });
 
+      if (!mounted) return;
       Navigator.of(context).pop();
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Game saved successfully!')));
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to save game: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to save game: $e')));
+      }
     }
   }
 

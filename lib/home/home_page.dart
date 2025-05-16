@@ -1,29 +1,33 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+//import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hockey_union/authentication/auth.dart';
 import 'package:hockey_union/home/home_drawer.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   final String userRole;
 
   const HomePage({super.key, this.userRole = 'Player'});
 
-  Future<void> signOut(BuildContext context) async {
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  Future<void> signOut() async {
     await Auth().signOut();
+
+    if (!mounted) return;
     Navigator.pushReplacementNamed(context, '/');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: HomeDrawer(userRole: userRole),
+      drawer: HomeDrawer(userRole: widget.userRole),
       appBar: AppBar(
-        title: Image.asset('assets/images/logo.jpg', height: 30),
+        title: Image.asset('assets/images/logo.png', height: 30),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => signOut(context),
-          ),
+          IconButton(icon: const Icon(Icons.logout), onPressed: () => signOut),
         ],
       ),
       body: Padding(

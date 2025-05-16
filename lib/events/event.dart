@@ -54,7 +54,6 @@ class EventPage extends StatelessWidget {
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hockey_union/home/home_drawer.dart';
-import 'package:hockey_union/home/home_drawer.dart';
 
 class EventDetailsPage extends StatelessWidget {
   final String eventId;
@@ -64,7 +63,7 @@ class EventDetailsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: const HomeDrawer(),
+      drawer: HomeDrawer(userRole: 'Player'),
       appBar: AppBar(title: const Text('Event Details')),
       body: FutureBuilder<DocumentSnapshot>(
         future:

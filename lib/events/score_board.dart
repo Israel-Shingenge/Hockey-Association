@@ -8,7 +8,7 @@ class ScoreBoardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: const HomeDrawer(),
+      drawer: HomeDrawer(userRole: 'Player'),
       appBar: AppBar(title: const Text("Score Board")),
       body: StreamBuilder<QuerySnapshot>(
         stream:

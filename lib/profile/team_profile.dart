@@ -11,15 +11,16 @@ class TeamProfilePage extends StatelessWidget {
     return FutureBuilder<DocumentSnapshot>(
       future: FirebaseFirestore.instance.collection('Teams').doc(teamId).get(),
       builder: (context, snapshot) {
-        if (snapshot.hasError)
+        if (snapshot.hasError) {
           return const Scaffold(
             body: Center(child: Text("Error loading team")),
           );
-        if (!snapshot.hasData)
+        }
+        if (!snapshot.hasData) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
-
+        }
         final team = snapshot.data!.data() as Map<String, dynamic>;
 
         return Scaffold(
@@ -45,8 +46,9 @@ class TeamProfilePage extends StatelessWidget {
                             .where('teamId', isEqualTo: teamId)
                             .snapshots(),
                     builder: (context, playerSnapshot) {
-                      if (!playerSnapshot.hasData)
+                      if (!playerSnapshot.hasData) {
                         return const CircularProgressIndicator();
+                      }
                       final players = playerSnapshot.data!.docs;
                       return ListView.builder(
                         itemCount: players.length,

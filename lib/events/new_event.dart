@@ -34,7 +34,7 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
         context: context,
         initialTime: TimeOfDay.now(),
       );
-      if (time != null) {
+      if (time != null && mounted) {
         setState(() {
           _selectedDateTime = DateTime(
             picked.year,
@@ -50,9 +50,11 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
 
   Future<void> _saveEvent() async {
     if (!_formKey.currentState!.validate() || _selectedDateTime == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in required fields')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please fill in required fields')),
+        );
+      }
       return;
     }
 
@@ -70,14 +72,17 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
         'createdAt': Timestamp.now(),
       });
 
+      if (!mounted) return;
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Event saved successfully!')),
       );
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to save event: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to save event: $e')));
+      }
     }
   }
 

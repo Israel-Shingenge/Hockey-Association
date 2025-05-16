@@ -28,6 +28,7 @@ class _LoginPageState extends State<LoginPage> {
         password: _controllerPassword.text,
       );
 
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const WidgetTree()),

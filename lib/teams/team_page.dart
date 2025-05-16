@@ -33,7 +33,7 @@ class _TeamPageState extends State<TeamPage> {
     );
     if (selected != null) {
       // You can reload data or update state
-      print('Team selected: $selected');
+      debugPrint('Team selected: $selected');
     }
   }
 

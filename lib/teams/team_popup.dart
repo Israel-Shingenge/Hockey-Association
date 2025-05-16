@@ -33,6 +33,7 @@ class _CreateTeamPopupState extends State<CreateTeamPopup> {
       'createdAt': Timestamp.now(),
     });
 
+    if (!mounted) return;
     Navigator.of(context).pop();
   }
 

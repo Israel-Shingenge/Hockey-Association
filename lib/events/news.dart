@@ -25,7 +25,7 @@ class _NewsPageState extends State<NewsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: const HomeDrawer(),
+      drawer: HomeDrawer(userRole: 'Player'),
       appBar: AppBar(title: const Text("News")),
       body: Column(
         children: [
