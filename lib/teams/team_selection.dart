@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+/*import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -52,6 +52,47 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
                     onTap: () {
                       // Navigate or store selection logic
                       Navigator.pop(context, data['teamName']);
+                    },
+                  );
+                },
+              ),
+    );
+  }
+}*/
+
+import 'package:flutter/material.dart';
+
+class TeamSelectionPage extends StatefulWidget {
+  const TeamSelectionPage({super.key});
+
+  @override
+  State<TeamSelectionPage> createState() => _TeamSelectionPageState();
+}
+
+class _TeamSelectionPageState extends State<TeamSelectionPage> {
+  final List<Map<String, String>> _userTeams = [
+    {'teamName': 'Windhoek Warriors', 'country': 'Namibia'},
+    {'teamName': 'Coastal Chargers', 'country': 'Namibia'},
+    {'teamName': 'Desert Strikers', 'country': 'Botswana'},
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Select a Team')),
+      body:
+          _userTeams.isEmpty
+              ? const Center(child: Text('No teams found.'))
+              : ListView.builder(
+                itemCount: _userTeams.length,
+                itemBuilder: (context, index) {
+                  final team = _userTeams[index];
+                  return ListTile(
+                    leading: const Icon(Icons.sports_hockey),
+                    title: Text(team['teamName'] ?? 'Unnamed'),
+                    subtitle: Text(team['country'] ?? ''),
+                    onTap: () {
+                      Navigator.pop(context, team['teamName']);
                     },
                   );
                 },

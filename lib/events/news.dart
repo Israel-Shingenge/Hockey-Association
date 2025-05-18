@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+/*import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:hockey_union/home/home_drawer.dart';
 
@@ -51,11 +51,12 @@ class _NewsPageState extends State<NewsPage> {
                       .orderBy('timestamp', descending: true)
                       .snapshots(),
               builder: (context, snapshot) {
-                if (snapshot.hasError)
+                if (snapshot.hasError) {
                   return const Center(child: Text("Error loading news"));
-                if (!snapshot.hasData)
+                }
+                if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
-
+                }
                 final news = snapshot.data!.docs;
 
                 return ListView.builder(
@@ -71,6 +72,75 @@ class _NewsPageState extends State<NewsPage> {
                 );
               },
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}*/
+
+import 'package:flutter/material.dart';
+import 'package:hockey_union/home/home_drawer.dart';
+
+class NewsPage extends StatefulWidget {
+  const NewsPage({super.key});
+
+  @override
+  State<NewsPage> createState() => _NewsPageState();
+}
+
+class _NewsPageState extends State<NewsPage> {
+  final _newsController = TextEditingController();
+  final List<Map<String, String>> _newsList = [];
+
+  void _submitNews() {
+    if (_newsController.text.isNotEmpty) {
+      setState(() {
+        _newsList.insert(0, {
+          'text': _newsController.text.trim(),
+          'timestamp': DateTime.now().toString(),
+        });
+        _newsController.clear();
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      drawer: HomeDrawer(userRole: 'Player'),
+      appBar: AppBar(title: const Text("News")),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: TextField(
+              controller: _newsController,
+              decoration: InputDecoration(
+                labelText: "Add news...",
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.send),
+                  onPressed: _submitNews,
+                ),
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ),
+          Expanded(
+            child:
+                _newsList.isEmpty
+                    ? const Center(child: Text("No news available"))
+                    : ListView.builder(
+                      itemCount: _newsList.length,
+                      itemBuilder: (context, index) {
+                        final item = _newsList[index];
+                        return ListTile(
+                          leading: const Icon(Icons.article),
+                          title: Text(item['text'] ?? ''),
+                          subtitle: Text(item['timestamp'] ?? ''),
+                        );
+                      },
+                    ),
           ),
         ],
       ),

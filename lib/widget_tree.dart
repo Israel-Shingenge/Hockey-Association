@@ -1,4 +1,4 @@
-import 'package:firebase_auth/firebase_auth.dart';
+/*import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:hockey_union/authentication/auth.dart';
 import 'package:hockey_union/authentication/login.dart';
@@ -27,5 +27,29 @@ class _WidgetTreeState extends State<WidgetTree> {
         }
       },
     );
+  }
+}*/
+
+import 'package:flutter/material.dart';
+import 'package:hockey_union/authentication/login.dart';
+import 'package:hockey_union/role_widget_tree.dart';
+
+class WidgetTree extends StatefulWidget {
+  const WidgetTree({super.key});
+
+  @override
+  State<WidgetTree> createState() => _WidgetTreeState();
+}
+
+class _WidgetTreeState extends State<WidgetTree> {
+  bool _isLoggedIn = true; // Toggle manually for UI testing
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoggedIn) {
+      return const RoleWidgetTree();
+    } else {
+      return const LoginPage();
+    }
   }
 }

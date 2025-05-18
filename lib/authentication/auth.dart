@@ -1,4 +1,4 @@
-import 'package:firebase_auth/firebase_auth.dart';
+/*import 'package:firebase_auth/firebase_auth.dart';
 
 class Auth {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
@@ -36,5 +36,32 @@ class Auth {
 
   Future<void> signOut() async {
     await _firebaseAuth.signOut();
+  }
+}*/
+
+class Auth {
+  // Placeholder methods to mimic auth flow
+
+  Future<void> signInWithEmailAndPassword({
+    required String email,
+    required String password,
+  }) async {
+    await Future.delayed(Duration(milliseconds: 500));
+  }
+
+  Future<void> createUserWithEmailAndPassword({
+    required String email,
+    required String password,
+    required String fullName,
+  }) async {
+    await Future.delayed(Duration(milliseconds: 500));
+  }
+
+  Future<void> sendPasswordResetEmail(String email) async {
+    await Future.delayed(Duration(milliseconds: 500));
+  }
+
+  Future<void> signOut() async {
+    await Future.delayed(Duration(milliseconds: 300));
   }
 }

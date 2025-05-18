@@ -51,7 +51,7 @@ class EventPage extends StatelessWidget {
   }
 }*/
 
-import 'package:flutter/material.dart';
+/*import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hockey_union/home/home_drawer.dart';
 
@@ -101,6 +101,42 @@ class EventDetailsPage extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}*/
+
+import 'package:flutter/material.dart';
+import 'package:hockey_union/home/home_drawer.dart';
+
+class EventDetailsPage extends StatelessWidget {
+  final String eventId;
+
+  const EventDetailsPage({super.key, required this.eventId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      drawer: HomeDrawer(userRole: 'Player'),
+      appBar: AppBar(title: const Text('Event Details')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: ListView(
+          children: const [
+            Text(
+              'Event Title',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Text('Date: 2025-06-01'),
+            Text('Time Zone: UTC+2'),
+            Text('Location: Field A'),
+            Text('Duration: 1 Hour'),
+            SizedBox(height: 12),
+            Text('Notes: No additional notes'),
+            Text('Volunteer: Coach'),
+          ],
+        ),
       ),
     );
   }
