@@ -1,4 +1,3 @@
-// lib/login_page.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hockey_union/authentication/forgot_password.dart';
@@ -20,7 +19,7 @@ class _LoginPageState extends State<LoginPage> {
   String? errorMessage = '';
   bool _isPasswordVisible = false;
 
-    Future<void> signInWithEmailAndPassword() async {
+  Future<void> signInWithEmailAndPassword() async {
     if (!_formKey.currentState!.validate()) return;
 
     try {
@@ -29,7 +28,6 @@ class _LoginPageState extends State<LoginPage> {
         password: _controllerPassword.text,
       );
 
-      // Navigate to WidgetTree after successful login
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const WidgetTree()),
@@ -38,7 +36,6 @@ class _LoginPageState extends State<LoginPage> {
       setState(() => errorMessage = e.message);
     }
   }
-
 
   Widget _entryField(String label, TextEditingController c,
       {bool obscure = false, TextInputType? keyboard}) {
@@ -49,8 +46,8 @@ class _LoginPageState extends State<LoginPage> {
       obscureText: isPassword ? !_isPasswordVisible : obscure,
       keyboardType: keyboard,
       decoration: InputDecoration(
-        hintText: 'Enter $label', // Changed from labelText to hintText
-        border: const OutlineInputBorder(), // Added border
+        hintText: 'Enter $label',
+        border: const OutlineInputBorder(),
         suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(
@@ -117,34 +114,94 @@ class _LoginPageState extends State<LoginPage> {
                         padding: const EdgeInsets.symmetric(vertical: 16.0),
                       ),
                       child: const Text(
-                          'LOGIN',
-                          style: TextStyle(fontSize: 16.0, color: Colors.white), // 👈 Optional: text color
-                        ),
+                        'LOGIN',
+                        style: TextStyle(fontSize: 16.0, color: Colors.white),
                       ),
+                    ),
+                    const SizedBox(height: 24.0),
+                    const Text(
+                      'Or sign in with',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        GestureDetector(
+                          onTap: () async {
+                            try {
+                              final userCredential = await Auth().signInWithGoogle();
+                              if (userCredential != null) {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const WidgetTree()),
+                                );
+                              }
+                            } catch (e) {
+                              setState(() => errorMessage = 'Google Sign-In failed. ${e.toString()}');
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(10),
+                            margin: const EdgeInsets.symmetric(horizontal: 30),
+                            decoration: BoxDecoration(
+                            ),
+                            child: Image.asset(
+                              'assets/images/google.webp',
+                              width: 50,
+                              height: 50,
+                            ),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Apple Sign-In not implemented yet.')),
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(10),
+                            margin: const EdgeInsets.symmetric(horizontal: 30),
+                            decoration: BoxDecoration(
+                            ),
+                            child: Image.asset(
+                              'assets/images/apple.png',
+                              width: 80,
+                              height: 80,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 16.0),
                     Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch, // Make buttons take full width
-                    children: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const RegisterPage()), // Navigate to RegisterPage
-                          );
-                        },
-                        child: const Text('Don\'t have an account? Sign Up', textAlign: TextAlign.center,),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const ForgotPasswordPage()),
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const RegisterPage()),
+                            );
+                          },
+                          child: const Text(
+                            'Don\'t have an account? Sign Up',
+                            textAlign: TextAlign.center,
+                          ),
                         ),
-                        child: const Text('Forgot your password? Reset', textAlign: TextAlign.center,),
-                      ),
-                    ],
-                  ),
+                        TextButton(
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const ForgotPasswordPage()),
+                          ),
+                          child: const Text(
+                            'Forgot your password? Reset',
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),

@@ -1,6 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:hockey_union/authentication/auth.dart';
 import 'edit_profile_page.dart';
 import 'language_security.dart';
@@ -19,26 +21,25 @@ class _ProfilePageState extends State<ProfilePage> {
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
 
+  File? _localProfileImage;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
-    // Initialize the controllers
     _firstNameController = TextEditingController();
     _lastNameController = TextEditingController();
     _emailController = TextEditingController();
     _phoneController = TextEditingController();
 
-    // Load user data from Firestore
     _loadUserData();
   }
-  
 
   Future<void> _loadUserData() async {
     if (user != null) {
       DocumentSnapshot snapshot = await FirebaseFirestore.instance
           .collection('Users')
-          .doc(user?.uid)
+          .doc(user!.uid)
           .get();
 
       setState(() {
@@ -50,6 +51,42 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  Future<void> _pickProfileImage() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _localProfileImage = File(pickedFile.path);
+      });
+    }
+  }
+
+  Widget _buildProfileAvatar() {
+    if (_localProfileImage != null) {
+      return CircleAvatar(
+        radius: 40,
+        backgroundImage: FileImage(_localProfileImage!),
+      );
+    } else if (user?.photoURL != null) {
+      return CircleAvatar(
+        radius: 40,
+        backgroundImage: NetworkImage(user!.photoURL!),
+      );
+    } else {
+      return const CircleAvatar(
+        radius: 40,
+        child: Icon(Icons.person, size: 40),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,10 +106,26 @@ class _ProfilePageState extends State<ProfilePage> {
             children: [
               Row(
                 children: [
-                  const CircleAvatar(
-                    radius: 40,
-                    // You might want to load the user's profile image here
-                    child: Icon(Icons.person, size: 40),
+                  Stack(
+                    children: [
+                      _buildProfileAvatar(),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: InkWell(
+                          onTap: _pickProfileImage,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.blue,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                            child: const Icon(Icons.edit, size: 20, color: Colors.white),
+                          ),
+                        ),
+                      )
+                    ],
                   ),
                   const SizedBox(width: 16),
                   Column(
@@ -82,7 +135,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         '${_firstNameController.text} ${_lastNameController.text}',
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
-                      Text('+264 ${_phoneController.text}'), // Assuming Namibia country code
+                      Text('+264 ${_phoneController.text}'), // Namibia country code
                     ],
                   ),
                 ],
@@ -91,16 +144,16 @@ class _ProfilePageState extends State<ProfilePage> {
               const Text('General', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
               ListTile(
-              leading: const Icon(Icons.edit),
-              title: const Text('Edit profile'),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const EditProfilePage()),
-                );
-              },
-            ),
+                leading: const Icon(Icons.edit),
+                title: const Text('Edit profile'),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const EditProfilePage()),
+                  );
+                },
+              ),
               const SizedBox(height: 16),
               const Text('App settings', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
@@ -123,36 +176,35 @@ class _ProfilePageState extends State<ProfilePage> {
                 },
               ),
               ListTile(
-              leading: const Icon(Icons.language),
-              title: const Text('Language'),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LanguageSecurityPage()),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.security_outlined),
-              title: const Text('Security'),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LanguageSecurityPage()),
-                );
-              },
-            ),
+                leading: const Icon(Icons.language),
+                title: const Text('Language'),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LanguageSecurityPage()),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.security_outlined),
+                title: const Text('Security'),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LanguageSecurityPage()),
+                  );
+                },
+              ),
               const SizedBox(height: 24),
               Center(
                 child: ElevatedButton(
                   onPressed: () async {
                     await Auth().signOut();
-                    // Navigator will handle the redirection based on WidgetTree
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue[900], // Match the LOG OUT button color
+                    backgroundColor: Colors.blue[900],
                     padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
                   ),
                   child: const Text('SIGN OUT', style: TextStyle(color: Colors.white)),
@@ -162,7 +214,6 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ),
       ),
-      // Removed the bottomNavigationBar here
     );
   }
 }

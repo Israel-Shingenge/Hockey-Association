@@ -1,10 +1,14 @@
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:hockey_union/authentication/auth.dart';
 
 class EditProfilePage extends StatefulWidget {
-  const EditProfilePage({super.key});
+  final File? localProfileImage;
+
+  const EditProfilePage({super.key, this.localProfileImage});
 
   @override
   State<EditProfilePage> createState() => _EditProfilePageState();
@@ -19,9 +23,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
   late TextEditingController _phoneController;
   String? _selectedGender;
 
+  File? _localProfileImage;
+  final ImagePicker _picker = ImagePicker();
+
   @override
   void initState() {
     super.initState();
+
+    _localProfileImage = widget.localProfileImage;
+
     _firstNameController = TextEditingController();
     _lastNameController = TextEditingController();
     _emailController = TextEditingController();
@@ -46,6 +56,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
   }
 
+  Future<void> _pickProfileImage() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _localProfileImage = File(pickedFile.path);
+      });
+    }
+  }
+
   Future<void> _updateUserData() async {
     if (_formKey.currentState!.validate() && user != null) {
       try {
@@ -55,17 +74,48 @@ class _EditProfilePageState extends State<EditProfilePage> {
           'email': _emailController.text,
           'phone': _phoneController.text,
           'gender': _selectedGender,
+          // Note: Profile image is local only, no upload here
         });
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profile updated successfully!')),
         );
-        Navigator.pop(context); // Go back to the ProfilePage
+        // Pass back the local image when popping
+        Navigator.pop(context, _localProfileImage);
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to update profile.')),
         );
       }
     }
+  }
+
+  Widget _buildProfileAvatar() {
+    if (_localProfileImage != null) {
+      return CircleAvatar(
+        radius: 60,
+        backgroundImage: FileImage(_localProfileImage!),
+      );
+    } else if (user?.photoURL != null) {
+      return CircleAvatar(
+        radius: 60,
+        backgroundImage: NetworkImage(user!.photoURL!),
+      );
+    } else {
+      return const CircleAvatar(
+        radius: 60,
+        child: Icon(Icons.person, size: 60),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    super.dispose();
   }
 
   @override
@@ -75,7 +125,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
         title: const Text('Edit Profile'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            Navigator.pop(context, _localProfileImage);
+          },
         ),
       ),
       body: SingleChildScrollView(
@@ -88,21 +140,20 @@ class _EditProfilePageState extends State<EditProfilePage> {
               Center(
                 child: Stack(
                   children: [
-                    const CircleAvatar(
-                      radius: 60,
-                      // You'll need to implement loading the actual profile image
-                      child: Icon(Icons.person, size: 60),
-                    ),
+                    _buildProfileAvatar(),
                     Positioned(
                       bottom: 0,
                       right: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.blue[900],
-                          borderRadius: BorderRadius.circular(15),
+                      child: InkWell(
+                        onTap: _pickProfileImage,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[900],
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          child: const Icon(Icons.edit, color: Colors.white, size: 20),
                         ),
-                        child: const Icon(Icons.edit, color: Colors.white, size: 20),
                       ),
                     ),
                   ],
@@ -164,7 +215,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   prefixIcon: Icon(Icons.phone_outlined),
                   labelText: 'Phone Number',
                   border: OutlineInputBorder(),
-                  prefixText: '+264 ', // Assuming Namibia country code
+                  prefixText: '+264 ',
                 ),
                 keyboardType: TextInputType.phone,
                 validator: (value) {
