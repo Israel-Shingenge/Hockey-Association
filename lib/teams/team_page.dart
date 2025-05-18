@@ -83,7 +83,7 @@ class _TeamPageState extends State<TeamPage> {
                   mainAxisAlignment: MainAxisAlignment.center, // Center the children horizontally
                   children: [
                     const Text(
-                      'Dunes',
+                      'Teams',
                       style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(width: 8.0), // Add some spacing between text and icon

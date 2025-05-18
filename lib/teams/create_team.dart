@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hockey_union/home/home_drawer.dart';
 
-
 class CreateTeamPage extends StatefulWidget {
   const CreateTeamPage({super.key});
 
@@ -31,22 +30,35 @@ class _CreateTeamPageState extends State<CreateTeamPage> {
         return;
       }
 
-      await FirebaseFirestore.instance.collection('Teams').add({
-        'clubName': _clubNameController.text,
-        'clubLeague': _clubLeagueController.text,
-        'clubContactPerson': _clubContactPersonController.text,
-        'email': _emailController.text,
-        'phoneNumber': _phoneNumberController.text,
-        'clubDescription': _clubDescriptionController.text,
-        'uid': uid, // Store the authenticated user's UID here
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      try {
+        // Create the team document
+        final teamRef = await FirebaseFirestore.instance.collection('Teams').add({
+          'clubName': _clubNameController.text.trim(),
+          'clubLeague': _clubLeagueController.text.trim(),
+          'clubContactPerson': _clubContactPersonController.text.trim(),
+          'email': _emailController.text.trim(),
+          'phoneNumber': _phoneNumberController.text.trim(),
+          'clubDescription': _clubDescriptionController.text.trim(),
+          'uid': uid,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Team created successfully')),
-      );
+        // Add creator_info subcollection
+        await teamRef.collection('creator_info').doc('details').set({
+          'createdByUid': uid,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
 
-      Navigator.of(context).pop(); // Go back to the previous page
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Team created successfully')),
+        );
+
+        Navigator.of(context).pop(); // Go back to the previous page
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to create team: $e')),
+        );
+      }
     }
   }
 
@@ -73,11 +85,9 @@ class _CreateTeamPageState extends State<CreateTeamPage> {
             ),
           ),
         ),
-        actions: const [
-          SizedBox(width: 56),
-        ],
+        actions: const [SizedBox(width: 56)],
       ),
-      drawer: const HomeDrawer(), // Use the imported HomeDrawer
+      drawer: const HomeDrawer(),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: Form(

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hockey_union/aboutUs/contact_us.dart';
+import 'package:hockey_union/events/view_events.dart';
 import 'package:hockey_union/fixtures/fixtures.dart';
 import 'package:hockey_union/news/news.dart';
 import 'package:hockey_union/teams/team_page.dart';
-import 'package:hockey_union/events/create_event.dart';
 
 class HomeDrawer extends StatelessWidget {
   const HomeDrawer({super.key});
@@ -101,7 +101,7 @@ class HomeDrawer extends StatelessWidget {
                     if (currentRoute != '/events') {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const EventsPage()),
+                        MaterialPageRoute(builder: (context) => const EventDetailPage()),
                       );
                     }
                   },

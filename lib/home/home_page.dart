@@ -3,6 +3,7 @@ import 'package:hockey_union/authentication/auth.dart';
 import 'package:flutter/material.dart';
 import 'package:hockey_union/events/create_event.dart';
 import 'package:hockey_union/teams/team_page.dart';
+import 'package:hockey_union/teams/view_teams.dart';
 import 'home_drawer.dart';
 import 'package:hockey_union/teams/create_team.dart';
 
@@ -17,7 +18,7 @@ class _HomePageState extends State<HomePage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final User? user = Auth().currentUser;
   // ignore: unused_field
-  final String _selectedLeague = 'Dunes'; // Initial league selection
+  final String _selectedLeague = 'Mens Outdoor'; // Initial league selection
 
   Future<void> signOut() async {
     await Auth().signOut();
@@ -48,12 +49,34 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  void _navigateToLeagueSelection() {
+  Navigator.push(
+    context,
+    PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => const TeamSelectionPage(),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        const begin = Offset(0.0, 1.0);
+        const end = Offset.zero;
+        const curve = Curves.easeInOut;
+
+        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+        return SlideTransition(
+          position: animation.drive(tween),
+          child: child,
+        );
+      },
+    ),
+  );
+}
+
+
  void _showAddPopupMenu() {
     showMenu(
       context: context,
       position: const RelativeRect.fromLTRB(
-          1000, // Adjust based on the plus icon's position
-          120, // Adjust based on the plus icon's position
+          1000, 
+          120, 
           1000,
           1000),
       items: [
@@ -134,14 +157,23 @@ class _HomePageState extends State<HomePage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: Row(
-                    children: [
-                      const Text(
-                        'Dunes', // Current league
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  child: GestureDetector(
+                    onTap: _navigateToLeagueSelection,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 8.0), // padding top as you wanted
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Text(
+                            'Teams',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(width: 4),
+                          Icon(Icons.arrow_drop_down, color: Colors.white),
+                        ],
                       ),
-                      const Icon(Icons.arrow_drop_down, color: Colors.white),
-                    ],
+                    ),
                   ),
                 ),
                 IconButton(

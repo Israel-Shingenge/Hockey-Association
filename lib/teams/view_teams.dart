@@ -1,8 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hockey_union/home/home_drawer.dart';
-import 'package:hockey_union/teams/edit_team.dart'; // Import the EditTeamPage
+import 'package:hockey_union/teams/edit_team.dart';
 
 class TeamSelectionPage extends StatefulWidget {
   const TeamSelectionPage({super.key});
@@ -21,7 +22,9 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
     final uid = FirebaseAuth.instance.currentUser?.uid;
 
     if (uid == null) {
-      print('No user is logged in');
+      if (kDebugMode) {
+        print('No user is logged in');
+      }
       return [];
     }
 
@@ -34,7 +37,9 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
 
       return teamsSnapshot.docs;
     } catch (e) {
-      print('Error fetching teams: $e');
+      if (kDebugMode) {
+        print('Error fetching teams: $e');
+      }
       return [];
     }
   }
@@ -45,7 +50,6 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
     _userTeamsFuture = _fetchUserTeams();
   }
 
-  // ignore: unused_element
   void _toggleTeamMenu() {
     setState(() {
       _isTeamMenuVisible = !_isTeamMenuVisible;
@@ -54,18 +58,17 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
 
   void _navigateToEditTeamPage(DocumentSnapshot team) {
     final teamData = team.data() as Map<String, dynamic>;
-    final teamName = teamData['teamName'] ?? '';
     final clubName = teamData['clubName'];
     final contactPerson = teamData['contactPerson'];
     final email = teamData['email'];
-    final description = teamData['description'];
+    final description = teamData['clubDescription'];
     final logoUrl = teamData['logoUrl'];
 
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => EditTeamPage(
-          teamName: teamName,
+          teamName: clubName,
           initialClubName: clubName,
           initialContactPerson: contactPerson,
           initialEmail: email,
@@ -91,15 +94,15 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
           child: SizedBox(
             height: 30,
             child: Image.asset(
-              'assets/images/NHU.png', // Replace with your actual logo path
+              'assets/images/NHU.png',
               fit: BoxFit.contain,
             ),
           ),
         ),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(kToolbarHeight), // Match standard AppBar bottom height
+          preferredSize: const Size.fromHeight(kToolbarHeight),
           child: Container(
-            color: const Color.fromARGB(255, 238, 238, 238), // Light grey background
+            color: const Color.fromARGB(255, 238, 238, 238),
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -110,24 +113,22 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
                 ),
                 TextButton(
                   onPressed: () async {
-                    // For now, let's navigate to the edit page for the first team in the list
                     if (_userTeams.isNotEmpty) {
                       _navigateToEditTeamPage(_userTeams.first);
                     } else {
-                      // Optionally show a message if there are no teams to edit
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('No teams available to edit.')),
                       );
                     }
                   },
-                  child: const Text('Edit', style: TextStyle(color: Colors.blue)), // Changed text color to blue
+                  child: const Text('Edit', style: TextStyle(color: Colors.blue)),
                 ),
               ],
             ),
           ),
         ),
         actions: const [
-          SizedBox(width: 56), // To offset the leading icon if title is centered
+          SizedBox(width: 56),
         ],
       ),
       drawer: const HomeDrawer(),
@@ -147,22 +148,22 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
               itemBuilder: (context, index) {
                 final team = _userTeams[index];
                 final teamData = team.data() as Map<String, dynamic>;
-                final teamName = teamData['teamName'] ?? 'Unnamed Team';
+                final clubName = teamData['clubName'] ?? 'Unnamed Club';
+
                 return ListTile(
                   leading: CircleAvatar(
                     backgroundColor: Colors.grey[300],
                     child: const Icon(Icons.image, color: Colors.grey),
                   ),
-                  title: Text(teamName),
+                  title: Text(clubName),
                   onTap: () {
-                    // Handle team selection
-                    print('$teamName selected');
-                    Navigator.pop(context, teamName); // Go back and pass the selected team name
+                    print('$clubName selected');
+                    Navigator.pop(context, clubName);
                   },
                   trailing: IconButton(
-                    icon: const Icon(Icons.edit_outlined, color: Colors.blue), // Added edit icon
+                    icon: const Icon(Icons.edit_outlined, color: Colors.blue),
                     onPressed: () {
-                      _navigateToEditTeamPage(team); // Navigate to edit page
+                      _navigateToEditTeamPage(team);
                     },
                   ),
                 );

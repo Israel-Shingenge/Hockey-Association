@@ -159,7 +159,7 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
     }
   }
 
-  Future<void> _saveEventToFirestore() async {
+    Future<void> _saveEventToFirestore() async {
     if (_eventNameController.text.isEmpty || _selectedDateTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in required fields.')),
@@ -170,7 +170,7 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
     final gameData = {
       'nameOfEvent': _eventNameController.text,
       'timeZone': _selectedTimeZone ?? 'UTC+1',
-      'date': DateFormat('dd MMMM yyyy HH:mm').format(_selectedDateTime!),
+      'date': Timestamp.fromDate(_selectedDateTime!), 
       'repeats': _repeats,
       'location': _selectedLocation ?? '',
       'volunteerAssignments': _selectedVolunteerAssignment ?? '',
@@ -178,25 +178,34 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
       'notifyTeam': _notifyTeam,
       'notes': _notesController.text,
       'createdAt': Timestamp.now(),
+      'league': 'Dunes', 
     };
 
     try {
-      await FirebaseFirestore.instance.collection('Game').add(gameData);
+      await FirebaseFirestore.instance.collection('Events').add(gameData);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Game saved successfully!')),
+        const SnackBar(content: Text('Event created successfully!')),
       );
       Navigator.of(context).pop();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save game: $e')),
+        SnackBar(content: Text('Failed to create event: $e')),
       );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.blue, // AppBar background
+        iconTheme: const IconThemeData(color: Colors.white), // ← changes back arrow color
+        titleTextStyle: const TextStyle( // ← changes title color and style
+          color: Colors.white,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
         title: const Text('Add Event'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -208,7 +217,7 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
             child: const Text('Cancel', style: TextStyle(color: Colors.white)),
           ),
           TextButton(
-            onPressed: _saveEventToFirestore, // ✅ Replaced logic here
+            onPressed: _saveEventToFirestore,
             child: const Text('Save', style: TextStyle(color: Colors.white)),
           ),
         ],
