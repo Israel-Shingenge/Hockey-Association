@@ -42,7 +42,7 @@ class WidgetTree extends StatefulWidget {
 }
 
 class _WidgetTreeState extends State<WidgetTree> {
-  bool _isLoggedIn = true; // Toggle manually for UI testing
+  final bool _isLoggedIn = true; // Toggle manually for UI testing
 
   @override
   Widget build(BuildContext context) {
