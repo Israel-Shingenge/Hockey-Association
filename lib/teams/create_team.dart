@@ -44,7 +44,7 @@ class _CreateTeamPageState extends State<CreateTeamPage> {
         });
 
         // Add creator_info subcollection
-        await teamRef.collection('creator_info').doc('details').set({
+        await teamRef.collection('creatorInfo').doc('details').set({
           'createdByUid': uid,
           'createdAt': FieldValue.serverTimestamp(),
         });

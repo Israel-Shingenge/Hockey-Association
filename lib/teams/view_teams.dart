@@ -13,42 +13,9 @@ class TeamSelectionPage extends StatefulWidget {
 }
 
 class _TeamSelectionPageState extends State<TeamSelectionPage> {
-  late Future<List<DocumentSnapshot>> _userTeamsFuture;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _isTeamMenuVisible = false;
   List<DocumentSnapshot> _userTeams = [];
-
-  Future<List<DocumentSnapshot>> _fetchUserTeams() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-
-    if (uid == null) {
-      if (kDebugMode) {
-        print('No user is logged in');
-      }
-      return [];
-    }
-
-    try {
-      final teamsSnapshot = await FirebaseFirestore.instance
-          .collection('Teams')
-          .where('uid', isEqualTo: uid)
-          .orderBy('createdAt', descending: true)
-          .get();
-
-      return teamsSnapshot.docs;
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error fetching teams: $e');
-      }
-      return [];
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _userTeamsFuture = _fetchUserTeams();
-  }
 
   void _toggleTeamMenu() {
     setState(() {
@@ -81,6 +48,8 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
 
   @override
   Widget build(BuildContext context) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
@@ -132,46 +101,53 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
         ],
       ),
       drawer: const HomeDrawer(),
-      body: FutureBuilder<List<DocumentSnapshot>>(
-        future: _userTeamsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error loading teams: ${snapshot.error}'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No teams available.'));
-          } else {
-            _userTeams = snapshot.data!;
-            return ListView.builder(
-              itemCount: _userTeams.length,
-              itemBuilder: (context, index) {
-                final team = _userTeams[index];
-                final teamData = team.data() as Map<String, dynamic>;
-                final clubName = teamData['clubName'] ?? 'Unnamed Club';
+      body: uid == null
+          ? const Center(child: Text('No user is logged in.'))
+          : StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('Teams')
+                  .where('uid', isEqualTo: uid)
+                  .orderBy('createdAt', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return Center(child: Text('Error loading teams: ${snapshot.error}'));
+                } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(child: Text('No teams available.'));
+                } else {
+                  _userTeams = snapshot.data!.docs;
 
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.grey[300],
-                    child: const Icon(Icons.image, color: Colors.grey),
-                  ),
-                  title: Text(clubName),
-                  onTap: () {
-                    print('$clubName selected');
-                    Navigator.pop(context, clubName);
-                  },
-                  trailing: IconButton(
-                    icon: const Icon(Icons.edit_outlined, color: Colors.blue),
-                    onPressed: () {
-                      _navigateToEditTeamPage(team);
+                  return ListView.builder(
+                    itemCount: _userTeams.length,
+                    itemBuilder: (context, index) {
+                      final team = _userTeams[index];
+                      final teamData = team.data() as Map<String, dynamic>;
+                      final clubName = teamData['clubName'] ?? 'Unnamed Club';
+
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: Colors.grey[300],
+                          child: const Icon(Icons.image, color: Colors.grey),
+                        ),
+                        title: Text(clubName),
+                        onTap: () {
+                          print('$clubName selected');
+                          Navigator.pop(context, clubName);
+                        },
+                        trailing: IconButton(
+                          icon: const Icon(Icons.edit_outlined, color: Colors.blue),
+                          onPressed: () {
+                            _navigateToEditTeamPage(team);
+                          },
+                        ),
+                      );
                     },
-                  ),
-                );
+                  );
+                }
               },
-            );
-          }
-        },
-      ),
+            ),
     );
   }
 }
