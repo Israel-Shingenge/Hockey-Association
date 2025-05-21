@@ -2,7 +2,7 @@ class Player {
   final String firstName;
   final String lastName;
   final int age;
-  final String height; // Consider using double or int for height
+  final String height;
   final String position;
 
   Player({
