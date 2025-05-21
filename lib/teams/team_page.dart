@@ -15,10 +15,80 @@ class TeamPage extends StatefulWidget {
 class _TeamPageState extends State<TeamPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
+  // State variables for sorting
+  // Default sort by 'firstName'
+  String _sortBy = 'firstName';
+  // Default sort in ascending order
+  bool _sortDescending = false;
+
+  // Function to navigate to the AddPlayerPage
   void _showAddPlayerPage() {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const AddPlayerPage()),
+    );
+  }
+
+  // Function to build and display the sort options menu
+  Widget _buildSortMenu() {
+    return PopupMenuButton<String>(
+      onSelected: (String result) {
+        setState(() {
+          // Logic to update sort criteria based on user selection
+          if (result == 'name_asc') {
+            _sortBy = 'firstName';
+            _sortDescending = false;
+          } else if (result == 'name_desc') {
+            _sortBy = 'firstName';
+            _sortDescending = true;
+          } else if (result == 'jersey_asc') {
+            _sortBy = 'jerseyNumber'; // Assuming you have 'jerseyNumber' field
+            _sortDescending = false;
+          } else if (result == 'jersey_desc') {
+            _sortBy = 'jerseyNumber';
+            _sortDescending = true;
+          } else if (result == 'position_asc') {
+            _sortBy = 'position'; // Assuming you have 'position' field
+            _sortDescending = false;
+          } else if (result == 'position_desc') {
+            _sortBy = 'position';
+            _sortDescending = true;
+          }
+          // You can add more sorting options here if needed.
+        });
+      },
+      itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+        const PopupMenuItem<String>(
+          value: 'name_asc',
+          child: Text('Name (A-Z)'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'name_desc',
+          child: Text('Name (Z-A)'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'jersey_asc',
+          child: Text('Jersey Number (Low to High)'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'jersey_desc',
+          child: Text('Jersey Number (High to Low)'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'position_asc',
+          child: Text('Position (A-Z)'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'position_desc',
+          child: Text('Position (Z-A)'),
+        ),
+      ],
+      child: const Row(
+        children: [
+          Text('Sort', style: TextStyle(color: Colors.blue)),
+          Icon(Icons.sort, color: Colors.blue),
+        ],
+      ),
     );
   }
 
@@ -116,9 +186,10 @@ class _TeamPageState extends State<TeamPage> {
 
             // Dynamic Player List Section
             StreamBuilder<QuerySnapshot>(
+              // Dynamically build the Firestore query based on selected sort options
               stream: FirebaseFirestore.instance
                   .collection('Player')
-                  .orderBy('createdAt', descending: true)
+                  .orderBy(_sortBy, descending: _sortDescending)
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -141,12 +212,8 @@ class _TeamPageState extends State<TeamPage> {
                           'Players (${players.length})',
                           style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
                         ),
-                        TextButton(
-                          onPressed: () {
-                            print('Sort clicked');
-                          },
-                          child: const Text('Sort', style: TextStyle(color: Colors.blue)),
-                        ),
+                        // Use the _buildSortMenu widget for the sort button
+                        _buildSortMenu(),
                       ],
                     ),
                     const SizedBox(height: 8.0),
@@ -156,7 +223,7 @@ class _TeamPageState extends State<TeamPage> {
                       itemCount: players.length,
                       itemBuilder: (context, index) {
                         final data = players[index].data()! as Map<String, dynamic>;
-                        final fullName = '${data['firstName']} ${data['lastName']}';
+                        final fullName = '${data['firstName'] ?? ''} ${data['lastName'] ?? ''}';
                         return _buildPlayerListItem(fullName, data);
                       },
                     ),
@@ -170,6 +237,7 @@ class _TeamPageState extends State<TeamPage> {
     );
   }
 
+  // Helper widget to build individual player list items
   Widget _buildPlayerListItem(String playerName, Map<String, dynamic> playerData) {
     return InkWell(
       onTap: () {
@@ -195,6 +263,24 @@ class _TeamPageState extends State<TeamPage> {
                   style: const TextStyle(fontSize: 16.0),
                 ),
               ),
+              // Display jersey number if available
+              if (playerData.containsKey('jerseyNumber'))
+                Padding(
+                  padding: const EdgeInsets.only(left: 8.0),
+                  child: Text(
+                    '#${playerData['jerseyNumber'].toString()}',
+                    style: const TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold, color: Colors.blueGrey),
+                  ),
+                ),
+              // Display position if available
+              if (playerData.containsKey('position'))
+                Padding(
+                  padding: const EdgeInsets.only(left: 8.0),
+                  child: Text(
+                    '(${playerData['position']})',
+                    style: const TextStyle(fontSize: 14.0, fontStyle: FontStyle.italic, color: Colors.grey),
+                  ),
+                ),
               const Icon(Icons.arrow_forward_ios, size: 16.0),
             ],
           ),

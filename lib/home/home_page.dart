@@ -1,11 +1,15 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:hockey_union/authentication/auth.dart';
 import 'package:flutter/material.dart';
-import 'package:hockey_union/events/create_event.dart';
-import 'package:hockey_union/teams/team_page.dart';
-import 'package:hockey_union/teams/view_teams.dart';
-import 'home_drawer.dart';
+import 'package:hockey_union/authentication/auth.dart';
+import 'package:hockey_union/events/create_event.dart'; // Assuming EventsPage is create_event.dart
 import 'package:hockey_union/teams/create_team.dart';
+import 'package:hockey_union/teams/team_page.dart'; // Used for 'Player' pop-up item
+import 'package:hockey_union/teams/view_teams.dart'; // Likely TeamSelectionPage
+import 'package:hockey_union/home/home_drawer.dart'; // Your custom drawer
+import 'package:hockey_union/widgets/events_preview.dart';
+import 'package:hockey_union/widgets/fixtures_preview.dart';
+import 'package:hockey_union/widgets/news_preview.dart';
+import 'package:hockey_union/widgets/standings_preview.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -17,74 +21,50 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final User? user = Auth().currentUser;
-  // ignore: unused_field
-  final String _selectedLeague = 'Mens Outdoor'; // Initial league selection
 
   Future<void> signOut() async {
     await Auth().signOut();
   }
 
-  Widget _signOutButton() {
-    return ElevatedButton(
-      onPressed: signOut,
-      child: const Text('Sign out'),
-    );
-  }
-
-  Widget _buildRoundedBox() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(10),
-      ),
-      height: 100,
-      child: const Center(
-        child: Text(
-          'Content Placeholder',
-          style: TextStyle(color: Colors.grey),
-          textAlign: TextAlign.center,
-        ),
-      ),
-    );
-  }
-
   void _navigateToLeagueSelection() {
-  Navigator.push(
-    context,
-    PageRouteBuilder(
-      pageBuilder: (context, animation, secondaryAnimation) => const TeamSelectionPage(),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        const begin = Offset(0.0, 1.0);
-        const end = Offset.zero;
-        const curve = Curves.easeInOut;
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => const TeamSelectionPage(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(0.0, 1.0);
+          const end = Offset.zero;
+          const curve = Curves.easeInOut;
+          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          return SlideTransition(
+            position: animation.drive(tween),
+            child: child,
+          );
+        },
+      ),
+    );
+  }
 
-        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+  void _showAddPopupMenu() {
+    // Determine the position of the popup menu relative to the 'add' icon
+    final RenderBox renderBox = context.findRenderObject() as RenderBox;
+    final Offset offset = renderBox.localToGlobal(Offset.zero);
+    final double appBarHeight = AppBar().preferredSize.height + MediaQuery.of(context).padding.top;
 
-        return SlideTransition(
-          position: animation.drive(tween),
-          child: child,
-        );
-      },
-    ),
-  );
-}
-
-
- void _showAddPopupMenu() {
     showMenu(
       context: context,
-      position: const RelativeRect.fromLTRB(
-          1000, 
-          120, 
-          1000,
-          1000),
+      position: RelativeRect.fromLTRB(
+        offset.dx + renderBox.size.width - 60, // Align with right of add icon
+        offset.dy + appBarHeight - 10,       // Just below the app bar
+        0,
+        0,
+      ),
       items: [
         PopupMenuItem(
           value: 'team',
           child: Row(
             children: const [
-              Icon(Icons.group_add),
+              Icon(Icons.group_add, color: Colors.blueGrey),
               SizedBox(width: 8),
               Text('Team'),
             ],
@@ -94,7 +74,7 @@ class _HomePageState extends State<HomePage> {
           value: 'event',
           child: Row(
             children: const [
-              Icon(Icons.event),
+              Icon(Icons.event, color: Colors.blueGrey),
               SizedBox(width: 8),
               Text('Event'),
             ],
@@ -104,7 +84,7 @@ class _HomePageState extends State<HomePage> {
           value: 'player',
           child: Row(
             children: const [
-              Icon(Icons.person_add),
+              Icon(Icons.person_add, color: Colors.blueGrey),
               SizedBox(width: 8),
               Text('Player'),
             ],
@@ -118,11 +98,13 @@ class _HomePageState extends State<HomePage> {
           MaterialPageRoute(builder: (context) => const CreateTeamPage()),
         );
       } else if (value == 'event') {
-         Navigator.push(
+        // Assuming EventsPage (from create_event.dart) is where new events are created/managed
+        Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const EventsPage()),
         );
       } else if (value == 'player') {
+        // Navigates to a page related to teams/players (TeamPage is just an example here)
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const TeamPage()),
@@ -136,93 +118,95 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
+        backgroundColor: Colors.blue[900], // Consistent primary color
         leading: IconButton(
-          icon: const Icon(Icons.menu),
+          icon: const Icon(Icons.menu, color: Colors.white),
           onPressed: () {
             _scaffoldKey.currentState?.openDrawer();
           },
         ),
         title: Center(
           child: Image.asset(
-            'assets/images/NHU.png', 
+            'assets/images/NHU.png',
             height: 30,
+            color: Colors.white, // Assuming logo can be tinted white for visibility
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add, color: Colors.white),
+            onPressed: _showAddPopupMenu,
+          ),
+          const SizedBox(width: 8), // Padding on the right
+        ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(50),
-          child: Container(
-            color: Colors.blue[900], // Match the bar's background color
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: _navigateToLeagueSelection,
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 8.0), // padding top as you wanted
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Text(
-                            'Teams',
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                          ),
-                          SizedBox(width: 4),
-                          Icon(Icons.arrow_drop_down, color: Colors.white),
-                        ],
-                      ),
+          preferredSize: const Size.fromHeight(60.0), // Height for the league selector
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: GestureDetector(
+              onTap: _navigateToLeagueSelection,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                decoration: BoxDecoration(
+                  color: Colors.white24, // Slightly transparent white for selection
+                  borderRadius: BorderRadius.circular(20.0),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.sports_hockey, color: Colors.white, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      'Teams', // This should eventually be dynamic based on selected league
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                     ),
-                  ),
+                    SizedBox(width: 4),
+                    Icon(Icons.arrow_drop_down, color: Colors.white),
+                  ],
                 ),
-                IconButton(
-                  icon: const Icon(Icons.add, color: Colors.white),
-                  onPressed: _showAddPopupMenu,
-                ),
-              ],
+              ),
             ),
           ),
         ),
-        actions: const [
-          SizedBox(width: 56),
-        ],
       ),
-      drawer: const HomeDrawer(), // Use the HomeDrawer here
-      body: Padding(
+      drawer: const HomeDrawer(), // Your custom drawer
+      body: SingleChildScrollView( // Make the body scrollable
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.stretch, // Make cards take full width
           children: <Widget>[
-            const Text(
-              'Standings',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            _buildRoundedBox(),
+            // Standings Preview Card
+            const StandingsPreviewCard(),
+            const SizedBox(height: 16), // Spacing between cards
+
+            // Fixtures Preview Card
+            const FixturesPreviewCard(),
             const SizedBox(height: 16),
-            const Text(
-              'Fixtures',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            _buildRoundedBox(),
+
+            // News Preview Card
+            const NewsPreviewCard(),
             const SizedBox(height: 16),
-            const Text(
-              'News',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+
+            // Events Preview Card
+            const EventsPreviewCard(),
+            const SizedBox(height: 24), // More space before sign out
+
+            // Sign out button (optional, could be in drawer as well)
+            Align(
+              alignment: Alignment.center,
+              child: OutlinedButton.icon(
+                onPressed: signOut,
+                icon: const Icon(Icons.logout, color: Colors.blueAccent),
+                label: const Text('Sign Out', style: TextStyle(color: Colors.blueAccent)),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.blueAccent),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+              ),
             ),
-            const SizedBox(height: 8),
-            _buildRoundedBox(),
-            const SizedBox(height: 16),
-            const Text(
-              'View Events (Upcoming, Ongoing, Past)',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            _buildRoundedBox(),
-            const Spacer(), // Keep this if you want Sign Out at the bottom
-            _signOutButton(),
           ],
         ),
       ),

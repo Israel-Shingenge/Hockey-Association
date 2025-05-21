@@ -140,7 +140,7 @@ class HomeDrawer extends StatelessWidget {
                 _buildDrawerItem(
                   context: context,
                   icon: Icons.newspaper,
-                  title: 'Standings',
+                  title: 'News',
                   onTap: () {
                     Navigator.of(context).pop();
                     if (currentRoute != '/news') {
