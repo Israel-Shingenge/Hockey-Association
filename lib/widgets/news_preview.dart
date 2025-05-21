@@ -59,7 +59,7 @@ class NewsPreviewCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                  )).toList(),
+                  )),
               const SizedBox(height: 10),
               Align(
                 alignment: Alignment.centerRight,

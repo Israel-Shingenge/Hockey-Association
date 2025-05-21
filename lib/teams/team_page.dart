@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:hockey_union/home/home_drawer.dart';
-import 'package:hockey_union/profile/player_profile.dart';
+import 'package:hockey_union/profile/player_profile.dart'; // Make sure this path is correct
 import 'package:hockey_union/teams/add_player.dart';
 import 'package:hockey_union/teams/view_teams.dart';
 
@@ -15,13 +15,9 @@ class TeamPage extends StatefulWidget {
 class _TeamPageState extends State<TeamPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // State variables for sorting
-  // Default sort by 'firstName'
-  String _sortBy = 'firstName';
-  // Default sort in ascending order
-  bool _sortDescending = false;
+  String _sortBy = 'firstName'; // Default sort by 'firstName'
+  bool _sortDescending = false; // Default sort in ascending order
 
-  // Function to navigate to the AddPlayerPage
   void _showAddPlayerPage() {
     Navigator.push(
       context,
@@ -29,12 +25,10 @@ class _TeamPageState extends State<TeamPage> {
     );
   }
 
-  // Function to build and display the sort options menu
   Widget _buildSortMenu() {
     return PopupMenuButton<String>(
       onSelected: (String result) {
         setState(() {
-          // Logic to update sort criteria based on user selection
           if (result == 'name_asc') {
             _sortBy = 'firstName';
             _sortDescending = false;
@@ -42,19 +36,18 @@ class _TeamPageState extends State<TeamPage> {
             _sortBy = 'firstName';
             _sortDescending = true;
           } else if (result == 'jersey_asc') {
-            _sortBy = 'jerseyNumber'; // Assuming you have 'jerseyNumber' field
+            _sortBy = 'jerseyNumber';
             _sortDescending = false;
           } else if (result == 'jersey_desc') {
             _sortBy = 'jerseyNumber';
             _sortDescending = true;
           } else if (result == 'position_asc') {
-            _sortBy = 'position'; // Assuming you have 'position' field
+            _sortBy = 'position';
             _sortDescending = false;
           } else if (result == 'position_desc') {
             _sortBy = 'position';
             _sortDescending = true;
           }
-          // You can add more sorting options here if needed.
         });
       },
       itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
@@ -129,9 +122,9 @@ class _TeamPageState extends State<TeamPage> {
               height: 50.0,
               color: Colors.blue[900],
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
+              child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
+                children: [
                   Text('Teams',
                       style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   SizedBox(width: 8.0),
@@ -186,7 +179,6 @@ class _TeamPageState extends State<TeamPage> {
 
             // Dynamic Player List Section
             StreamBuilder<QuerySnapshot>(
-              // Dynamically build the Firestore query based on selected sort options
               stream: FirebaseFirestore.instance
                   .collection('Player')
                   .orderBy(_sortBy, descending: _sortDescending)
@@ -194,6 +186,10 @@ class _TeamPageState extends State<TeamPage> {
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
+                }
+
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
                 }
 
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -212,7 +208,6 @@ class _TeamPageState extends State<TeamPage> {
                           'Players (${players.length})',
                           style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
                         ),
-                        // Use the _buildSortMenu widget for the sort button
                         _buildSortMenu(),
                       ],
                     ),
@@ -222,9 +217,19 @@ class _TeamPageState extends State<TeamPage> {
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: players.length,
                       itemBuilder: (context, index) {
-                        final data = players[index].data()! as Map<String, dynamic>;
+                        final document = players[index]; // Get the document snapshot
+                        final data = document.data()! as Map<String, dynamic>;
+                        final String docId = document.id; // ⭐ Get the document ID here!
                         final fullName = '${data['firstName'] ?? ''} ${data['lastName'] ?? ''}';
-                        return _buildPlayerListItem(fullName, data);
+
+                        // ⭐ IMPORTANT: Check if document ID is empty before proceeding
+                        if (docId.isEmpty) {
+                          print('Warning: Document ID is empty for a player. Skipping this entry.');
+                          return const SizedBox.shrink(); // Don't build a list item for invalid ID
+                        }
+
+                        // ⭐ Pass docId and the full data map
+                        return _buildPlayerListItem(docId, fullName, data);
                       },
                     ),
                   ],
@@ -238,14 +243,18 @@ class _TeamPageState extends State<TeamPage> {
   }
 
   // Helper widget to build individual player list items
-  Widget _buildPlayerListItem(String playerName, Map<String, dynamic> playerData) {
+  // Now accepts playerId (document.id) and playerData map
+  Widget _buildPlayerListItem(String playerId, String playerName, Map<String, dynamic> playerData) {
     return InkWell(
       onTap: () {
+        // ⭐ Pass the document ID and player data to PlayerProfilePage
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => PlayerProfilePage(playerName: playerName),
-            // You can pass `playerData` if your PlayerProfilePage supports full player details
+            builder: (context) => PlayerProfilePage(
+              playerId: playerId, // Pass the unique document ID
+              playerData: playerData, playerName: '', // Pass the entire player data map
+            ),
           ),
         );
       },
