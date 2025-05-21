@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -14,14 +13,7 @@ class TeamSelectionPage extends StatefulWidget {
 
 class _TeamSelectionPageState extends State<TeamSelectionPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  bool _isTeamMenuVisible = false;
   List<DocumentSnapshot> _userTeams = [];
-
-  void _toggleTeamMenu() {
-    setState(() {
-      _isTeamMenuVisible = !_isTeamMenuVisible;
-    });
-  }
 
   void _navigateToEditTeamPage(DocumentSnapshot team) {
     final teamData = team.data() as Map<String, dynamic>;

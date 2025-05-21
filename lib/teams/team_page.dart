@@ -14,7 +14,6 @@ class TeamPage extends StatefulWidget {
 
 class _TeamPageState extends State<TeamPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  final String _selectedLeague = 'Dunes';
 
   void _showAddPlayerPage() {
     Navigator.push(

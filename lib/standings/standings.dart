@@ -1,142 +1,219 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hockey_union/home/home_drawer.dart'; // Assuming you have a HomeDrawer
 
-class StandingsPage extends StatelessWidget {
+class StandingsPage extends StatefulWidget {
   const StandingsPage({super.key});
+
+  @override
+  _StandingsPageState createState() => _StandingsPageState();
+}
+
+class _StandingsPageState extends State<StandingsPage> {
+  // Collection reference pointing to your 'standings' collection
+  final CollectionReference _standings = FirebaseFirestore.instance.collection('Standings');
+
+  // Function to update a specific field for a team in the standings
+  Future<void> _updateTeamField(String docId, String field, dynamic value) async {
+    await _standings.doc(docId).update({field: value});
+  }
+
+  // Dialog to add a new team to the standings
+  Future<void> _addTeamDialog(BuildContext context) async {
+    final TextEditingController nameController = TextEditingController();
+    final TextEditingController pointsController = TextEditingController(text: '0');
+    final TextEditingController winsController = TextEditingController(text: '0');
+    final TextEditingController lossesController = TextEditingController(text: '0');
+    final TextEditingController drawsController = TextEditingController(text: '0');
+    final TextEditingController gamesPlayedController = TextEditingController(text: '0');
+    final TextEditingController goalsForController = TextEditingController(text: '0');
+    final TextEditingController goalsAgainstController = TextEditingController(text: '0');
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add New Team'), 
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Team Name')),
+              TextField(controller: pointsController, decoration: const InputDecoration(labelText: 'Points'), keyboardType: TextInputType.number),
+              TextField(controller: winsController, decoration: const InputDecoration(labelText: 'Wins'), keyboardType: TextInputType.number),
+              TextField(controller: lossesController, decoration: const InputDecoration(labelText: 'Losses'), keyboardType: TextInputType.number),
+              TextField(controller: drawsController, decoration: const InputDecoration(labelText: 'Draws'), keyboardType: TextInputType.number),
+              TextField(controller: gamesPlayedController, decoration: const InputDecoration(labelText: 'Games Played'), keyboardType: TextInputType.number),
+              TextField(controller: goalsForController, decoration: const InputDecoration(labelText: 'Goals For'), keyboardType: TextInputType.number),
+              TextField(controller: goalsAgainstController, decoration: const InputDecoration(labelText: 'Goals Against'), keyboardType: TextInputType.number),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              await _standings.add({
+                'clubName': nameController.text, // Ensure this matches your JSON field name
+                'points': int.tryParse(pointsController.text) ?? 0,
+                'wins': int.tryParse(winsController.text) ?? 0,
+                'losses': int.tryParse(lossesController.text) ?? 0,
+                'draws': int.tryParse(drawsController.text) ?? 0,
+                'gamesPlayed': int.tryParse(gamesPlayedController.text) ?? 0,
+                'goalsFor': int.tryParse(goalsForController.text) ?? 0,
+                'goalsAgainst': int.tryParse(goalsAgainstController.text) ?? 0,
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Widget to build an editable number field for standings stats
+  Widget _buildNumberEditableField(String docId, String field, int value) {
+    return SizedBox(
+      width: 50, // Adjust width as needed for proper alignment
+      child: TextFormField(
+        initialValue: value.toString(),
+        textAlign: TextAlign.center,
+        keyboardType: TextInputType.number,
+        onFieldSubmitted: (val) {
+          int parsed = int.tryParse(val) ?? 0;
+          _updateTeamField(docId, field, parsed);
+        },
+        decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.symmetric(vertical: 4.0)),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: const Text('Match Details', style: TextStyle(color: Colors.white)),
+        title: const Text('Standings', style: TextStyle(color: Colors.white)),
         centerTitle: true,
         backgroundColor: Colors.blue[900],
       ),
-      drawer: const HomeDrawer(), // Assuming you want the drawer here
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Match Information Section
-            Container(
-              color: Colors.blue[800],
-              padding: const EdgeInsets.symmetric(vertical: 24.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  Column(
-                    children: [
-                      Container(
-                        width: 60.0,
-                        height: 60.0,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.grey[300],
-                        ),
-                        child: const Icon(Icons.image_outlined, size: 30.0, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 8.0),
-                      const Text('Eagles', style: TextStyle(color: Colors.white)),
-                    ],
-                  ),
-                  Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+      drawer: const HomeDrawer(), 
+      body: StreamBuilder<QuerySnapshot>(
+        // Order by 'points' descending, then by 'goalsFor' descending for tie-breaking
+        stream: _standings.orderBy('points', descending: true).orderBy('goalsFor', descending: true).snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            print("Firestore Error: ${snapshot.error}");
+            return const Center(child: Text('Error loading data', style: TextStyle(color: Colors.red)));
+          }
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text('No teams found. Add some teams!', style: TextStyle(color: Colors.grey)));
+          }
+
+          final teams = snapshot.data!.docs;
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Standings Header Row
+                Table(
+                  columnWidths: const {
+                    0: FlexColumnWidth(3), // Team Name
+                    1: FlexColumnWidth(1), // GP
+                    2: FlexColumnWidth(1), // W
+                    3: FlexColumnWidth(1), // L
+                    4: FlexColumnWidth(1), // T
+                    5: FlexColumnWidth(1), // GF
+                    6: FlexColumnWidth(1), // GA
+                    8: FlexColumnWidth(1), // Pts
+                  },
+                  children: const [
+                    TableRow(
+                      children: [
+                        TableCell(child: Center(child: Text('Team', style: TextStyle(fontWeight: FontWeight.bold)))),
+                        TableCell(child: Center(child: Text('GP', style: TextStyle(fontWeight: FontWeight.bold)))),
+                        TableCell(child: Center(child: Text('W', style: TextStyle(fontWeight: FontWeight.bold)))),
+                        TableCell(child: Center(child: Text('L', style: TextStyle(fontWeight: FontWeight.bold)))),
+                        TableCell(child: Center(child: Text('D', style: TextStyle(fontWeight: FontWeight.bold)))),
+                        TableCell(child: Center(child: Text('GF', style: TextStyle(fontWeight: FontWeight.bold)))),
+                        TableCell(child: Center(child: Text('GA', style: TextStyle(fontWeight: FontWeight.bold)))),
+                        TableCell(child: Center(child: Text('Pts', style: TextStyle(fontWeight: FontWeight.bold)))),
+                      ],
+                    ),
+                  ],
+                ),
+                const Divider(),
+                // Standings List
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(), // Prevent nested scrolling
+                  itemCount: teams.length,
+                  itemBuilder: (context, index) {
+                    final team = teams[index];
+                    final id = team.id; // Document ID
+                    final data = team.data() as Map<String, dynamic>;
+
+                    // Retrieve data with null checks and default values
+                    final String clubName = data['clubName'] ?? 'Unknown Team';
+                    final int points = data['points'] ?? 0;
+                    final int wins = data['wins'] ?? 0;
+                    final int losses = data['losses'] ?? 0;
+                    final int draws = data['draws'] ?? 0;
+                    final int gamesPlayed = data['gamesPlayed'] ?? (wins + losses + draws); // Calculate if not present
+                    final int goalsFor = data['goalsFor'] ?? 0;
+                    final int goalsAgainst = data['goalsAgainst'] ?? 0;
+
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: Table(
+                        columnWidths: const {
+                          0: FlexColumnWidth(3), // Team Name
+                          1: FlexColumnWidth(1), // GP
+                          2: FlexColumnWidth(1), // W
+                          3: FlexColumnWidth(1), // L
+                          4: FlexColumnWidth(1), // T
+                          5: FlexColumnWidth(1), // GF
+                          6: FlexColumnWidth(1), // GA
+                          8: FlexColumnWidth(1), // Pts
+                        },
                         children: [
-                          const Text('2', style: TextStyle(fontSize: 24.0, color: Colors.white, fontWeight: FontWeight.bold)),
-                          const SizedBox(width: 8.0),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                            decoration: BoxDecoration(
-                              color: Colors.blue[500],
-                              borderRadius: BorderRadius.circular(4.0),
-                            ),
-                            child: const Text('35:00', style: TextStyle(color: Colors.white, fontSize: 12.0)),
+                          TableRow(
+                            children: [
+                              // Team Name (no logo)
+                              TableCell(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(left: 4.0), // Slight padding for text
+                                  child: Text(clubName, overflow: TextOverflow.ellipsis),
+                                ),
+                              ),
+                              // Editable Fields
+                              TableCell(child: _buildNumberEditableField(id, 'gamesPlayed', gamesPlayed)),
+                              TableCell(child: _buildNumberEditableField(id, 'wins', wins)),
+                              TableCell(child: _buildNumberEditableField(id, 'losses', losses)),
+                              TableCell(child: _buildNumberEditableField(id, 'draws', draws)),
+                              TableCell(child: _buildNumberEditableField(id, 'goalsFor', goalsFor)),
+                              TableCell(child: _buildNumberEditableField(id, 'goalsAgainst', goalsAgainst)),
+                              TableCell(child: _buildNumberEditableField(id, 'points', points)),
+                            ],
                           ),
-                          const SizedBox(width: 8.0),
-                          const Text('4', style: TextStyle(fontSize: 24.0, color: Colors.white, fontWeight: FontWeight.bold)),
                         ],
                       ),
-                      const SizedBox(height: 4.0),
-                      const Text('First Half', style: TextStyle(color: Colors.white, fontSize: 12.0)),
-                    ],
-                  ),
-                  Column(
-                    children: [
-                      Container(
-                        width: 60.0,
-                        height: 60.0,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.grey[300],
-                        ),
-                        child: const Icon(Icons.image_outlined, size: 30.0, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 8.0),
-                      const Text('Dunes', style: TextStyle(color: Colors.white)),
-                    ],
-                  ),
-                ],
-              ),
+                    );
+                  },
+                ),
+              ],
             ),
-            const SizedBox(height: 16.0),
-            // Standings Section
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Standings', style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8.0),
-                  Row(
-                    children: [
-                      const SizedBox(width: 40.0), // Placeholder for team logo/rank
-                      Expanded(child: const Text('Pts', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold))),
-                      Expanded(child: const Text('Win', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold))),
-                      Expanded(child: const Text('Lose', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold))),
-                      Expanded(child: const Text('Draw', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold))),
-                    ],
-                  ),
-                  const Divider(),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(), // To prevent nested scrolling issues
-                    itemCount: 7, // Placeholder for 7 teams
-                    itemBuilder: (context, index) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 30.0,
-                              height: 30.0,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.grey[300],
-                              ),
-                              child: const Icon(Icons.image_outlined, size: 16.0, color: Colors.grey),
-                            ),
-                            const SizedBox(width: 10.0),
-                            Expanded(child: Text('Team ${index + 1}')), // Placeholder team name
-                            Expanded(child: const Text('40', textAlign: TextAlign.center)),
-                            Expanded(child: const Text('40', textAlign: TextAlign.center)),
-                            Expanded(child: const Text('40', textAlign: TextAlign.center)),
-                            Expanded(child: const Text('40', textAlign: TextAlign.center)),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _addTeamDialog(context),
+        backgroundColor: const Color.fromARGB(255, 89, 152, 247),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }

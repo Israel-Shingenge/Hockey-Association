@@ -10,7 +10,7 @@ class EventsListPage extends StatefulWidget {
 
 class _EventsListPageState extends State<EventsListPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  List<EventItem> _events = []; // Placeholder for your event data
+  final List<EventItem> _events = []; // Placeholder for your event data
 
   @override
   void initState() {
