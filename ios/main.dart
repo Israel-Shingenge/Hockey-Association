@@ -26,7 +26,7 @@ import 'package:flutter/material.dart'
         ThemeData,
         Widget,
         runApp;
-import 'package:myapp/registration_page.dart'; // Assuming your registration_page.dart is in the lib folder
+import 'package:myapp/registration_page.dart'; 
 
 void main() {
   runApp(const MyApp());
@@ -35,17 +35,17 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
+ 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Hcokey PLayer REgistaryion',
+      title: 'Hcokey PLayer Registaryion',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color.fromARGB(255, 55, 81, 172),
         ),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: 'Hockey Registartion'),
     );
   }
 }
@@ -80,12 +80,12 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Text('You have pushed the button this many times:'),
+            Text('Welcome to the team:'),
             Text(
               '$_counter',
               style: Theme.of(context).textTheme.headlineMedium,
             ),
-            const SizedBox(height: 20), // Add some spacing
+            const SizedBox(height: 20), g
             ElevatedButton(
               onPressed: () {
                 Navigator.push(
