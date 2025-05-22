@@ -1,8 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hockey_union/home/home_drawer.dart';
 import 'package:hockey_union/teams/edit_team.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class TeamSelectionPage extends StatefulWidget {
   const TeamSelectionPage({super.key});
@@ -14,6 +16,26 @@ class TeamSelectionPage extends StatefulWidget {
 class _TeamSelectionPageState extends State<TeamSelectionPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   List<DocumentSnapshot> _userTeams = [];
+  Map<String, File?> _localLogos = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLocalLogos();
+  }
+
+  Future<void> _loadLocalLogos() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    for (var team in _userTeams) {
+      final teamData = team.data() as Map<String, dynamic>;
+      final teamName = teamData['clubName'];
+      final logoPath = prefs.getString('team_logo_$teamName');
+      if (logoPath != null && File(logoPath).existsSync()) {
+        _localLogos[teamName] = File(logoPath);
+      }
+    }
+    setState(() {});
+  }
 
   void _navigateToEditTeamPage(DocumentSnapshot team) {
     final teamData = team.data() as Map<String, dynamic>;
@@ -35,7 +57,7 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
           teamLogoUrl: logoUrl,
         ),
       ),
-    );
+    ).then((_) => _loadLocalLogos()); // Refresh local logos after editing
   }
 
   @override
@@ -47,17 +69,12 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.menu),
-          onPressed: () {
-            _scaffoldKey.currentState?.openDrawer();
-          },
+          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
         ),
         title: Center(
           child: SizedBox(
             height: 30,
-            child: Image.asset(
-              'assets/images/NHU.png',
-              fit: BoxFit.contain,
-            ),
+            child: Image.asset('assets/images/NHU.png', fit: BoxFit.contain),
           ),
         ),
         bottom: PreferredSize(
@@ -70,10 +87,10 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
               children: [
                 const Text(
                   'Active teams',
-                  style: TextStyle(color: Colors.black87, fontWeight: FontWeight.normal),
+                  style: TextStyle(color: Colors.black87),
                 ),
                 TextButton(
-                  onPressed: () async {
+                  onPressed: () {
                     if (_userTeams.isNotEmpty) {
                       _navigateToEditTeamPage(_userTeams.first);
                     } else {
@@ -88,9 +105,7 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
             ),
           ),
         ),
-        actions: const [
-          SizedBox(width: 56),
-        ],
+        actions: const [SizedBox(width: 56)],
       ),
       drawer: const HomeDrawer(),
       body: uid == null
@@ -109,19 +124,23 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
                 } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return const Center(child: Text('No teams available.'));
                 } else {
-                  _userTeams = snapshot.data!.docs;
-
+                 _userTeams = snapshot.data!.docs;
+                    if (_localLogos.isEmpty) {
+                      _loadLocalLogos();
+                    }
                   return ListView.builder(
                     itemCount: _userTeams.length,
                     itemBuilder: (context, index) {
                       final team = _userTeams[index];
                       final teamData = team.data() as Map<String, dynamic>;
                       final clubName = teamData['clubName'] ?? 'Unnamed Club';
+                      final logoFile = _localLogos[clubName];
 
                       return ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: Colors.grey[300],
-                          child: const Icon(Icons.image, color: Colors.grey),
+                          backgroundImage: logoFile != null
+                              ? FileImage(logoFile)
+                              : const AssetImage('assets/images/default_team_logo.png') as ImageProvider,
                         ),
                         title: Text(clubName),
                         onTap: () {
@@ -130,9 +149,7 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
                         },
                         trailing: IconButton(
                           icon: const Icon(Icons.edit_outlined, color: Colors.blue),
-                          onPressed: () {
-                            _navigateToEditTeamPage(team);
-                          },
+                          onPressed: () => _navigateToEditTeamPage(team),
                         ),
                       );
                     },

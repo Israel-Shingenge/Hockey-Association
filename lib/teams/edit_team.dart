@@ -1,13 +1,17 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:hockey_union/home/home_drawer.dart';
 
 class EditTeamPage extends StatefulWidget {
-  final String teamName; // Pass the team name to edit
+  final String teamName;
   final String? initialClubName;
   final String? initialContactPerson;
   final String? initialEmail;
   final String? initialDescription;
-  final String? teamLogoUrl; // Optional: pass the logo URL
+  final String? teamLogoUrl;
 
   const EditTeamPage({
     super.key,
@@ -29,6 +33,8 @@ class _EditTeamPageState extends State<EditTeamPage> {
   final _emailController = TextEditingController();
   final _descriptionController = TextEditingController();
 
+  File? _localImageFile;
+
   @override
   void initState() {
     super.initState();
@@ -36,10 +42,38 @@ class _EditTeamPageState extends State<EditTeamPage> {
     _contactPersonController.text = widget.initialContactPerson ?? '';
     _emailController.text = widget.initialEmail ?? '';
     _descriptionController.text = widget.initialDescription ?? '';
+    _loadLocalImage();
+  }
+
+  Future<void> _loadLocalImage() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? path = prefs.getString('team_logo_${widget.teamName}');
+    if (path != null && File(path).existsSync()) {
+      setState(() {
+        _localImageFile = File(path);
+      });
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      final directory = await getApplicationDocumentsDirectory();
+      final path = '${directory.path}/${widget.teamName}_logo.png';
+      final savedImage = await File(pickedFile.path).copy(path);
+
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('team_logo_${widget.teamName}', savedImage.path);
+
+      setState(() {
+        _localImageFile = savedImage;
+      });
+    }
   }
 
   void _saveChanges() {
-    // Implement your logic to save the edited team details
     final updatedClubName = _clubNameController.text;
     final updatedContactPerson = _contactPersonController.text;
     final updatedEmail = _emailController.text;
@@ -51,7 +85,6 @@ class _EditTeamPageState extends State<EditTeamPage> {
     print('Updated Email: $updatedEmail');
     print('Updated Description: $updatedDescription');
 
-    // After saving, you might want to navigate back
     Navigator.pop(context);
   }
 
@@ -61,9 +94,7 @@ class _EditTeamPageState extends State<EditTeamPage> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
         title: Text('Edit ${widget.teamName}'),
         centerTitle: true,
@@ -86,21 +117,23 @@ class _EditTeamPageState extends State<EditTeamPage> {
               child: Stack(
                 alignment: Alignment.bottomRight,
                 children: [
-                  Container(
-                    width: 120.0,
-                    height: 120.0,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.grey[300]!),
-                      image: widget.teamLogoUrl != null
-                          ? DecorationImage(
-                              image: NetworkImage(widget.teamLogoUrl!),
-                              fit: BoxFit.cover,
-                            )
-                          : const DecorationImage(
-                              image: AssetImage('assets/images/default_team_logo.png'), // Replace with your default logo
-                              fit: BoxFit.cover,
-                            ),
+                  GestureDetector(
+                    onTap: _pickImage,
+                    child: Container(
+                      width: 120.0,
+                      height: 120.0,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.grey[300]!),
+                        image: DecorationImage(
+                          image: _localImageFile != null
+                              ? FileImage(_localImageFile!)
+                              : widget.teamLogoUrl != null
+                                  ? NetworkImage(widget.teamLogoUrl!) as ImageProvider
+                                  : const AssetImage('assets/images/default_team_logo.png'),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
                     ),
                   ),
                   CircleAvatar(
@@ -112,27 +145,13 @@ class _EditTeamPageState extends State<EditTeamPage> {
               ),
             ),
             const SizedBox(height: 24.0),
-            _buildTextField(
-              labelText: 'Club Name',
-              controller: _clubNameController,
-            ),
+            _buildTextField(labelText: 'Club Name', controller: _clubNameController),
             const SizedBox(height: 16.0),
-            _buildTextField(
-              labelText: 'Club contact person',
-              controller: _contactPersonController,
-            ),
+            _buildTextField(labelText: 'Club contact person', controller: _contactPersonController),
             const SizedBox(height: 16.0),
-            _buildTextField(
-              labelText: 'Email',
-              controller: _emailController,
-              keyboardType: TextInputType.emailAddress,
-            ),
+            _buildTextField(labelText: 'Email', controller: _emailController, keyboardType: TextInputType.emailAddress),
             const SizedBox(height: 16.0),
-            _buildTextField(
-              labelText: 'Club description',
-              controller: _descriptionController,
-              maxLines: null,
-            ),
+            _buildTextField(labelText: 'Club description', controller: _descriptionController, maxLines: null),
             const SizedBox(height: 32.0),
             ElevatedButton(
               onPressed: _saveChanges,

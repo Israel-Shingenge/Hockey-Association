@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:hockey_union/authentication/auth.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'edit_profile_page.dart';
 import 'language_security.dart';
 
@@ -33,6 +35,7 @@ class _ProfilePageState extends State<ProfilePage> {
     _phoneController = TextEditingController();
 
     _loadUserData();
+    _loadLocalImage();
   }
 
   Future<void> _loadUserData() async {
@@ -51,11 +54,29 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  Future<void> _loadLocalImage() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? path = prefs.getString('local_profile_image');
+    if (path != null && File(path).existsSync()) {
+      setState(() {
+        _localProfileImage = File(path);
+      });
+    }
+  }
+
   Future<void> _pickProfileImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
+      File imageFile = File(pickedFile.path);
+      final appDir = await getApplicationDocumentsDirectory();
+      final localPath = '${appDir.path}/${user!.uid}_profile.jpg';
+      final savedImage = await imageFile.copy(localPath);
+
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('local_profile_image', savedImage.path);
+
       setState(() {
-        _localProfileImage = File(pickedFile.path);
+        _localProfileImage = savedImage;
       });
     }
   }
@@ -65,11 +86,6 @@ class _ProfilePageState extends State<ProfilePage> {
       return CircleAvatar(
         radius: 40,
         backgroundImage: FileImage(_localProfileImage!),
-      );
-    } else if (user?.photoURL != null) {
-      return CircleAvatar(
-        radius: 40,
-        backgroundImage: NetworkImage(user!.photoURL!),
       );
     } else {
       return const CircleAvatar(
@@ -135,7 +151,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         '${_firstNameController.text} ${_lastNameController.text}',
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
-                      Text('+264 ${_phoneController.text}'), // Namibia country code
+                      Text('+264 ${_phoneController.text}'),
                     ],
                   ),
                 ],
@@ -162,18 +178,14 @@ class _ProfilePageState extends State<ProfilePage> {
                 title: const Text('Theme'),
                 trailing: Switch(
                   value: Theme.of(context).brightness == Brightness.dark,
-                  onChanged: (bool value) {
-                    // Implement theme switching logic here
-                  },
+                  onChanged: (bool value) {},
                 ),
               ),
               ListTile(
                 leading: const Icon(Icons.notifications_outlined),
                 title: const Text('Notifications'),
                 trailing: const Text('Allow', style: TextStyle(color: Colors.grey)),
-                onTap: () {
-                  // Implement notifications settings navigation
-                },
+                onTap: () {},
               ),
               ListTile(
                 leading: const Icon(Icons.language),
