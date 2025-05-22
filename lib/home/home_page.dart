@@ -14,6 +14,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  List<NewsModel> news = [];
+  bool isLoading = true;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final User? user = Auth().currentUser;
   // ignore: unused_field
@@ -107,6 +109,18 @@ class _HomePageState extends State<HomePage> {
       }
     });
   }
+  getNews() async {
+    News newsClass = News();
+    await newsClass.getNews();
+    news = newsClass.news;
+    setState(() {
+      isLoading = false;
+
+    });
+
+  }
+    
+
 
   @override
   Widget build(BuildContext context) {
@@ -191,7 +205,58 @@ class _HomePageState extends State<HomePage> {
             _buildRoundedBox(),
             const Spacer(), // Keep this if you want Sign Out at the bottom
             _signOutButton(),
+
+            Container(
+              child: ListView.builder(itemBuilder:(context, index) {
+                return BlogTile(
+                  title: news[index].title,
+                  content: news[index].content,
+                  image: news[index].imageUrl,
+                  url: news[index].url,)
+              
+              });
+            )
           ],
+        ),
+      ),
+    );
+  }
+}
+class BlogTile extends StatefulWidget {
+  String title;
+  String content;     
+  String image;
+  String url;
+  String author;
+  DateTime date;
+  BlogTile({
+    required this.title,
+    required this.content,
+    required this.image,
+    required this.url,
+    required this.author,
+    required this.date,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      onTop(){
+
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+          borderRadius: BorderRadius.circular(10),
+        ),
+        height: 100,
+        child: const Center(
+          child: Text(
+            'Content Placeholder',
+            style: TextStyle(color: Colors.grey),
+            textAlign: TextAlign.center,
+          ),
         ),
       ),
     );
