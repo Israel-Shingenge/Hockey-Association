@@ -1,11 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:hockey_union/authentication/auth.dart';
-import 'package:hockey_union/events/create_event.dart'; // Assuming EventsPage is create_event.dart
+import 'package:hockey_union/events/create_event.dart'; 
 import 'package:hockey_union/teams/create_team.dart';
-import 'package:hockey_union/teams/team_page.dart'; // Used for 'Player' pop-up item
-import 'package:hockey_union/teams/view_teams.dart'; // Likely TeamSelectionPage
-import 'package:hockey_union/home/home_drawer.dart'; // Your custom drawer
+import 'package:hockey_union/teams/team_page.dart'; 
+import 'package:hockey_union/teams/view_teams.dart'; 
+import 'package:hockey_union/home/home_drawer.dart'; 
 import 'package:hockey_union/widgets/events_preview.dart';
 import 'package:hockey_union/widgets/fixtures_preview.dart';
 import 'package:hockey_union/widgets/news_preview.dart';

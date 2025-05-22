@@ -91,3 +91,7 @@ class NewsPage extends StatelessWidget {
     );
   }
 }
+
+
+// Need to add roles like admin, player, and manager such only they can perform certsin actions 
+// And only they can seee ceratin information

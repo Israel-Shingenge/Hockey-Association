@@ -54,7 +54,6 @@ class _EventDetailPageState extends State<EventDetailPage> {
     }
   }
 
-  // ⭐ New: Function to delete an event
   Future<void> _deleteEvent(String eventId) async {
     // Show a confirmation dialog
     final bool confirmDelete = await showDialog(

@@ -25,7 +25,6 @@ class MyApp extends StatelessWidget {
       routes: {
         '/home': (context) => HomePage(),
         '/profile': (context) => const ProfilePage(),
-        // ... other routes
       },
     );
   }

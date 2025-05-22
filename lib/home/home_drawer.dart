@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hockey_union/aboutUs/contact_us.dart';
 import 'package:hockey_union/events/view_events.dart';
-import 'package:hockey_union/fixtures/fixtures.dart';
+import 'package:hockey_union/standings/fixtures.dart';
 import 'package:hockey_union/news/news.dart';
 import 'package:hockey_union/teams/team_page.dart';
 

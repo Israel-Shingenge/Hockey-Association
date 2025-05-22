@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore
-import 'package:hockey_union/fixtures/fixtures.dart';
+import 'package:hockey_union/standings/fixtures.dart';
 import 'package:intl/intl.dart'; // For date and time formatting
 
 class FixturesPreviewCard extends StatelessWidget {
