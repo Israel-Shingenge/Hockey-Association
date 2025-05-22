@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // ✅ Firestore import
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AddNewEventPage extends StatefulWidget {
   const AddNewEventPage({super.key});
@@ -14,11 +14,23 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
   String? _selectedTimeZone;
   DateTime? _selectedDateTime;
   String _repeats = 'Does Not Repeat';
-  String? _selectedLocation;
+
+  final _locationController = TextEditingController();
+  final _durationController = TextEditingController();
+
   String? _selectedVolunteerAssignment;
-  String? _selectedDuration;
   final _notesController = TextEditingController();
   bool _notifyTeam = false;
+
+  // Dispose controllers to prevent memory leaks
+  @override
+  void dispose() {
+    _eventNameController.dispose();
+    _locationController.dispose();
+    _durationController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
 
   Future<void> _selectDateTime(BuildContext context) async {
     final DateTime? pickedDate = await showDatePicker(
@@ -55,7 +67,9 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
           content: SingleChildScrollView(
             child: Column(
               children: <Widget>[
-                ListTile(title: const Text('Does Not Repeat'), onTap: () => Navigator.pop(context, 'Does Not Repeat')),
+                ListTile(
+                    title: const Text('Does Not Repeat'),
+                    onTap: () => Navigator.pop(context, 'Does Not Repeat')),
                 ListTile(title: const Text('Daily'), onTap: () => Navigator.pop(context, 'Daily')),
                 ListTile(title: const Text('Weekly'), onTap: () => Navigator.pop(context, 'Weekly')),
                 ListTile(title: const Text('Monthly'), onTap: () => Navigator.pop(context, 'Monthly')),
@@ -73,33 +87,7 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
     }
   }
 
-  Future<void> _selectLocation(BuildContext context) async {
-    final String? location = await showDialog<String>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Select Location'),
-          content: SingleChildScrollView(
-            child: Column(
-              children: <Widget>[
-                ListTile(title: const Text('Field A'), onTap: () => Navigator.pop(context, 'Field A')),
-                ListTile(title: const Text('Field B'), onTap: () => Navigator.pop(context, 'Field B')),
-                ListTile(title: const Text('Gym'), onTap: () => Navigator.pop(context, 'Gym')),
-              ],
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-          ],
-        );
-      },
-    );
-    if (location != null) {
-      setState(() {
-        _selectedLocation = location;
-      });
-    }
-  }
+  //    Instead, direct text input is used in the build method.
 
   Future<void> _selectVolunteerAssignment(BuildContext context) async {
     final String? assignment = await showDialog<String>(
@@ -113,7 +101,7 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
                 ListTile(title: const Text('Coach'), onTap: () => Navigator.pop(context, 'Coach')),
                 ListTile(title: const Text('Referee'), onTap: () => Navigator.pop(context, 'Referee')),
                 ListTile(title: const Text('Scorekeeper'), onTap: () => Navigator.pop(context, 'Scorekeeper')),
-                ListTile(title: const Text('Photographer'), onTap: () => Navigator.pop(context, 'Photgrapher')),
+                ListTile(title: const Text('Photographer'), onTap: () => Navigator.pop(context, 'Photographer')), // Corrected typo
                 ListTile(title: const Text('Videographer'), onTap: () => Navigator.pop(context, 'Videographer')),
               ],
             ),
@@ -131,35 +119,7 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
     }
   }
 
-  Future<void> _selectDuration(BuildContext context) async {
-    final String? duration = await showDialog<String>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Select Duration'),
-          content: SingleChildScrollView(
-            child: Column(
-              children: <Widget>[
-                ListTile(title: const Text('1 Hour'), onTap: () => Navigator.pop(context, '1 Hour')),
-                ListTile(title: const Text('1.5 Hours'), onTap: () => Navigator.pop(context, '1.5 Hours')),
-                ListTile(title: const Text('2 Hours'), onTap: () => Navigator.pop(context, '2 Hours')),
-              ],
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-          ],
-        );
-      },
-    );
-    if (duration != null) {
-      setState(() {
-        _selectedDuration = duration;
-      });
-    }
-  }
-
-    Future<void> _saveEventToFirestore() async {
+  Future<void> _saveEventToFirestore() async {
     if (_eventNameController.text.isEmpty || _selectedDateTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in required fields.')),
@@ -169,16 +129,16 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
 
     final gameData = {
       'nameOfEvent': _eventNameController.text,
-      'timeZone': _selectedTimeZone ?? 'UTC+1',
-      'date': Timestamp.fromDate(_selectedDateTime!), 
+      'timeZone': _selectedTimeZone ?? 'UTC+1', // Default if not selected
+      'date': Timestamp.fromDate(_selectedDateTime!),
       'repeats': _repeats,
-      'location': _selectedLocation ?? '',
+      'location': _locationController.text, 
       'volunteerAssignments': _selectedVolunteerAssignment ?? '',
-      'duration': _selectedDuration ?? '',
+      'duration': _durationController.text, 
       'notifyTeam': _notifyTeam,
       'notes': _notesController.text,
       'createdAt': Timestamp.now(),
-      'league': 'Dunes', 
+      'league': 'Dunes', // Hardcoded as per your existing code
     };
 
     try {
@@ -194,14 +154,13 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blue, // AppBar background
-        iconTheme: const IconThemeData(color: Colors.white), // ← changes back arrow color
-        titleTextStyle: const TextStyle( // ← changes title color and style
+        backgroundColor: Colors.blue,
+        iconTheme: const IconThemeData(color: Colors.white),
+        titleTextStyle: const TextStyle(
           color: Colors.white,
           fontSize: 20,
           fontWeight: FontWeight.bold,
@@ -258,7 +217,7 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
               ),
               readOnly: true,
               onTap: () {
-                // Optional time zone logic
+                // Optional time zone logic (you can implement a time zone picker here)
               },
             ),
             const SizedBox(height: 16.0),
@@ -298,23 +257,17 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
               ),
             ),
             const SizedBox(height: 16.0),
-            InkWell(
-              onTap: () => _selectLocation(context),
-              child: InputDecorator(
-                decoration: const InputDecoration(
-                  labelText: 'Location',
-                  border: OutlineInputBorder(),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: <Widget>[
-                    Text(_selectedLocation ?? 'Please select'),
-                    const Icon(Icons.arrow_forward_ios),
-                  ],
-                ),
+
+            TextFormField(
+              controller: _locationController,
+              decoration: const InputDecoration(
+                labelText: 'Location',
+                border: OutlineInputBorder(),
+                hintText: 'e.g., Nust basket ball court ', // Added hint
               ),
             ),
             const SizedBox(height: 16.0),
+
             InkWell(
               onTap: () => _selectVolunteerAssignment(context),
               child: InputDecorator(
@@ -332,23 +285,18 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
               ),
             ),
             const SizedBox(height: 16.0),
-            InkWell(
-              onTap: () => _selectDuration(context),
-              child: InputDecorator(
-                decoration: const InputDecoration(
-                  labelText: 'Duration',
-                  border: OutlineInputBorder(),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: <Widget>[
-                    Text(_selectedDuration ?? 'Please select'),
-                    const Icon(Icons.arrow_forward_ios),
-                  ],
-                ),
+
+            TextFormField(
+              controller: _durationController,
+              decoration: const InputDecoration(
+                labelText: 'Duration',
+                border: OutlineInputBorder(),
+                hintText: 'e.g., 2 hours, 90 minutes', // Added hint
               ),
+              keyboardType: TextInputType.text, // Allows text input for "2 hours" etc.
             ),
             const SizedBox(height: 16.0),
+
             TextFormField(
               controller: _notesController,
               maxLines: 3,
