@@ -81,19 +81,25 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  Widget _buildProfileAvatar() {
-    if (_localProfileImage != null) {
-      return CircleAvatar(
-        radius: 40,
-        backgroundImage: FileImage(_localProfileImage!),
-      );
-    } else {
-      return const CircleAvatar(
-        radius: 40,
-        child: Icon(Icons.person, size: 40),
-      );
+    Widget _buildProfileAvatar() {
+      if (_localProfileImage != null) {
+        return CircleAvatar(
+          radius: 40,
+          backgroundImage: FileImage(_localProfileImage!),
+        );
+      } else if (user?.photoURL != null) {
+        return CircleAvatar(
+          radius: 40,
+          backgroundImage: NetworkImage(user!.photoURL!),
+        );
+      } else {
+        return const CircleAvatar(
+          radius: 40,
+          child: Icon(Icons.person, size: 40),
+        );
+      }
     }
-  }
+
 
   @override
   void dispose() {
