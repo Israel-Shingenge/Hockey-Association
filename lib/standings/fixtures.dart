@@ -1,7 +1,32 @@
-import 'package:flutter/material.dart';
+// lib/fixtures/fixtures.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:intl/intl.dart'; // For date formatting
-import 'package:hockey_union/home/home_drawer.dart'; // Assuming you have a HomeDrawer
+import 'package:flutter/material.dart';
+
+enum FixtureFilter { past, today, upcoming }
+
+// NEW: Enum for different league types
+enum LeagueType {
+  mensDivision('Mens Division'),
+  womensDivision('Womens Division'),
+  indoorHockey('Indoor Hockey'),
+  outdoorHockey('Outdoor Hockey');
+
+  final String displayName;
+  const LeagueType(this.displayName);
+}
+
+// NEW: Enum for league filter options (including 'All')
+enum LeagueFilter {
+  all('All'),
+  mensDivision('Mens Division'),
+  womensDivision('Womens Division'),
+  indoorHockey('Indoor Hockey'),
+  outdoorHockey('Outdoor Hockey');
+
+  final String displayName;
+  const LeagueFilter(this.displayName);
+}
+
 
 class FixturesPage extends StatefulWidget {
   const FixturesPage({super.key});
@@ -11,522 +36,543 @@ class FixturesPage extends StatefulWidget {
 }
 
 class _FixturesPageState extends State<FixturesPage> {
-  // Collection reference pointing to your 'fixtures' collection in Firestore.
-  // Ensure this matches the exact case in your Firestore console.
-  final CollectionReference _fixtures = FirebaseFirestore.instance.collection('fixtures');
+  final CollectionReference _fixtures =
+      FirebaseFirestore.instance.collection('Fixtures'); // Ensure 'Fixtures' is correct
 
-  // State to manage the currently selected date for filtering fixtures.
-  // Initialized to today to show today's fixtures by default.
-  DateTime _selectedDate = DateTime.now();
-  // A flag to indicate if we are in "Upcoming" or "Past" mode,
-  // which implies showing events > _selectedDate or < _selectedDate.
-  // 'day' means only events for that specific day.
-  // 'upcoming' means events from tomorrow onwards.
-  // 'past' means events from yesterday backwards.
-  String _filterMode = 'day'; // Can be 'day', 'upcoming', 'past'
+  // Text editing controllers for the input fields
+  final TextEditingController _team1NameController = TextEditingController();
+  final TextEditingController _team2NameController = TextEditingController();
+  final TextEditingController _timeController = TextEditingController();
+  final TextEditingController _dateController = TextEditingController();
+  final TextEditingController _durationController = TextEditingController();
+
+  DateTime? _selectedDate;
+  TimeOfDay? _selectedTime;
+
+  // State variable for the selected filter (Past, Today, Upcoming)
+  FixtureFilter _selectedFixtureFilter = FixtureFilter.upcoming; // Default to upcoming
+
+  // NEW: State variable for the selected league type during creation/editing
+  LeagueType? _selectedLeagueType;
+
+  // NEW: State variable for the selected league filter
+  LeagueFilter _selectedLeagueFilter = LeagueFilter.all; // Default to 'All'
 
   @override
-  void initState() {
-    super.initState();
-    // Initialize to show upcoming fixtures by default when the page loads.
-    _selectedDate = DateTime.now().add(const Duration(days: 1)); // Start from tomorrow
-    _filterMode = 'upcoming';
+  void dispose() {
+    _team1NameController.dispose();
+    _team2NameController.dispose();
+    _timeController.dispose();
+    _dateController.dispose();
+    _durationController.dispose();
+    super.dispose();
   }
 
-  // Function to add or edit a fixture in Firestore.
-  // [documentSnapshot] is optional. If provided, it means we are editing an existing fixture.
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+        _dateController.text =
+            "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+      });
+    }
+  }
+
+  Future<void> _selectTime(BuildContext context) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: _selectedTime ?? TimeOfDay.now(),
+    );
+    if (picked != null && picked != _selectedTime) {
+      setState(() {
+        _selectedTime = picked;
+        _timeController.text =
+            "${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}";
+      });
+    }
+  }
+
   Future<void> _upsertFixture([DocumentSnapshot? documentSnapshot]) async {
-    // Controllers for text fields in the dialog.
-    final TextEditingController team1Controller = TextEditingController();
-    final TextEditingController team2Controller = TextEditingController();
-    final TextEditingController timeController = TextEditingController();
-    final TextEditingController dateController = TextEditingController();
-
-    DateTime? initialDate;
-    TimeOfDay? initialTime;
-
-    // If a documentSnapshot is provided, pre-fill controllers with existing data.
-    if (documentSnapshot != null) {
+     if (documentSnapshot != null) {
       final data = documentSnapshot.data() as Map<String, dynamic>;
-      team1Controller.text = data['team1Name'] ?? '';
-      team2Controller.text = data['team2Name'] ?? '';
-      timeController.text = data['time'] ?? '';
-      dateController.text = data['date'] ?? '';
-
-      // Try to parse existing date and time for initial values of pickers.
-      try {
-        initialDate = DateTime.parse(data['date']);
-        List<String> timeParts = (data['time'] as String).split(':');
-        initialTime = TimeOfDay(hour: int.parse(timeParts[0]), minute: int.parse(timeParts[1]));
-      } catch (e) {
-        // Log error if parsing fails, but don't block the UI.
-        print("Error parsing date/time for editing: $e");
+      _team1NameController.text = data['team1Name'];
+      _team2NameController.text = data['team2Name'];
+      _timeController.text = data['time'];
+      _dateController.text = data['date'];
+      _durationController.text = data['durationMinutes']?.toString() ?? '';
+      _selectedDate = DateTime.tryParse(data['date']);
+      List<String> timeParts = data['time'].split(':');
+      if (timeParts.length == 2) {
+        _selectedTime =
+            TimeOfDay(hour: int.parse(timeParts[0]), minute: int.parse(timeParts[1]));
       }
+      // NEW: Set selected league type for editing
+      final String? existingLeagueType = data['leagueType'];
+      _selectedLeagueType = null; // Initialize to null
+      if (existingLeagueType != null) {
+        try {
+          _selectedLeagueType = LeagueType.values.firstWhere(
+            (e) => e.displayName == existingLeagueType,
+            // If not found, _selectedLeagueType remains null, which is fine as it's nullable.
+            // No need for orElse here if we want it to be null if not found.
+          );
+        } catch (e) {
+          // Handle case where existingLeagueType might not match any enum value
+          // print('Warning: Invalid leagueType from Firestore: $existingLeagueType');
+          _selectedLeagueType = null;
+        }
+      }
+
     } else {
-      // For a new fixture, pre-fill the date field based on current _selectedDate
-      // but only if _filterMode is 'day'. Otherwise, default to today.
-      initialDate = (_filterMode == 'day') ? _selectedDate : DateTime.now();
-      dateController.text = DateFormat('yyyy-MM-dd').format(initialDate);
+      // Clear controllers for new fixture
+      _team1NameController.text = '';
+      _team2NameController.text = '';
+      _timeController.text = '';
+      _dateController.text = '';
+      _durationController.text = '';
+      _selectedDate = null;
+      _selectedTime = null;
+      _selectedLeagueType = null; // NEW: Clear selected league type for new fixture
     }
 
-    // Show a modal bottom sheet for adding/editing fixture details.
     await showModalBottomSheet(
+      isScrollControlled: true,
       context: context,
-      isScrollControlled: true, // Allows the sheet to take full height if needed
-      builder: (BuildContext context) {
-        return Padding(
-          // Adjust padding based on keyboard visibility.
-          padding: EdgeInsets.only(
-            top: 20,
-            left: 20,
-            right: 20,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-          ),
-          child: SingleChildScrollView( // Allows scrolling if content overflows
-            child: Column(
-              mainAxisSize: MainAxisSize.min, // Column takes minimum space vertically
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  documentSnapshot == null ? 'Add New Fixture' : 'Edit Fixture',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueGrey),
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: team1Controller,
-                  decoration: const InputDecoration(labelText: 'Team 1 Name', border: OutlineInputBorder()),
-                ),
-                const SizedBox(height: 15),
-                TextField(
-                  controller: team2Controller,
-                  decoration: const InputDecoration(labelText: 'Team 2 Name', border: OutlineInputBorder()),
-                ),
-                const SizedBox(height: 15),
-                // GestureDetector and AbsorbPointer are used to make the TextField tap-to-open-picker.
-                GestureDetector(
-                  onTap: () async {
-                    TimeOfDay? pickedTime = await showTimePicker(
-                      context: context,
-                      initialTime: initialTime ?? TimeOfDay.now(), // Use initial time or current time
-                    );
-                    if (pickedTime != null) {
-                      // Format time to HH:MM string for storage.
-                      // Ensure consistent 24-hour format if needed, otherwise format(context) is locale-dependent.
-                      timeController.text = MaterialLocalizations.of(context).formatTimeOfDay(pickedTime, alwaysUse24HourFormat: true);
-                    }
-                  },
-                  child: AbsorbPointer( // Prevents direct text input
-                    child: TextField(
-                      controller: timeController,
-                      decoration: const InputDecoration(
-                        labelText: 'Time',
-                        border: OutlineInputBorder(),
-                        suffixIcon: Icon(Icons.access_time),
+      builder: (BuildContext ctx) {
+        return StatefulBuilder( // Use StatefulBuilder to update dropdown in modal
+          builder: (BuildContext context, StateSetter setStateModal) {
+            return Padding(
+              padding: EdgeInsets.only(
+                top: 20,
+                left: 20,
+                right: 20,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: _team1NameController,
+                    decoration: const InputDecoration(labelText: 'Team 1 Name'),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _team2NameController,
+                    decoration: const InputDecoration(labelText: 'Team 2 Name'),
+                  ),
+                  const SizedBox(height: 10),
+                  GestureDetector(
+                    onTap: () => _selectDate(ctx),
+                    child: AbsorbPointer(
+                      child: TextField(
+                        controller: _dateController,
+                        decoration: const InputDecoration(
+                          labelText: 'Date',
+                          suffixIcon: Icon(Icons.calendar_today),
+                        ),
                       ),
-                      readOnly: true, // Ensures time is picked, not typed
                     ),
                   ),
-                ),
-                const SizedBox(height: 15),
-                GestureDetector(
-                  onTap: () async {
-                    DateTime? pickedDate = await showDatePicker(
-                      context: context,
-                      initialDate: initialDate ?? DateTime.now(), // Use initial date or current date
-                      firstDate: DateTime(2000), // Date range for the picker
-                      lastDate: DateTime(2101),
-                    );
-                    if (pickedDate != null) {
-                      // Format date to yyyy-MM-dd string for storage.
-                      dateController.text = DateFormat('yyyy-MM-dd').format(pickedDate);
-                    }
-                  },
-                  child: AbsorbPointer( // Prevents direct text input
-                    child: TextField(
-                      controller: dateController,
-                      decoration: const InputDecoration(
-                        labelText: 'Date',
-                        border: OutlineInputBorder(),
-                        suffixIcon: Icon(Icons.calendar_today),
+                  const SizedBox(height: 10),
+                  GestureDetector(
+                    onTap: () => _selectTime(ctx),
+                    child: AbsorbPointer(
+                      child: TextField(
+                        controller: _timeController,
+                        decoration: const InputDecoration(
+                          labelText: 'Time',
+                          suffixIcon: Icon(Icons.access_time),
+                        ),
                       ),
-                      readOnly: true, // Ensures date is picked, not typed
                     ),
                   ),
-                ),
-                const SizedBox(height: 25),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: TextButton.styleFrom(foregroundColor: Colors.blueGrey),
-                      child: const Text('Cancel'),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _durationController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Match Duration (minutes)'),
+                  ),
+                  const SizedBox(height: 10),
+                  // NEW: Dropdown for League Type
+                  DropdownButtonFormField<LeagueType>(
+                    value: _selectedLeagueType,
+                    decoration: const InputDecoration(
+                      labelText: 'League Type',
+                      border: OutlineInputBorder(),
                     ),
-                    const SizedBox(width: 10),
-                    ElevatedButton(
-                      onPressed: () async {
-                        final String team1Name = team1Controller.text;
-                        final String team2Name = team2Controller.text;
-                        final String time = timeController.text;
-                        final String date = dateController.text;
+                    items: LeagueType.values.map((LeagueType league) {
+                      return DropdownMenuItem<LeagueType>(
+                        value: league,
+                        child: Text(league.displayName),
+                      );
+                    }).toList(),
+                    onChanged: (LeagueType? newValue) {
+                      setStateModal(() { // Use setStateModal for the modal's state
+                        _selectedLeagueType = newValue;
+                      });
+                    },
+                    validator: (value) {
+                      if (value == null) {
+                        return 'Please select a league type';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    child: Text(documentSnapshot == null ? 'Create' : 'Update'),
+                    onPressed: () async {
+                      final String team1Name = _team1NameController.text;
+                      final String team2Name = _team2NameController.text;
+                      final String time = _timeController.text;
+                      final String date = _dateController.text;
+                      final String durationText = _durationController.text;
+                      final int? durationMinutes = int.tryParse(durationText);
 
-                        // Basic validation: ensure all fields are filled.
-                        if (team1Name.isNotEmpty && team2Name.isNotEmpty && time.isNotEmpty && date.isNotEmpty) {
-                          // Create a DateTime object from date string for timestamp.
-                          final DateTime fixtureDateTime = DateTime.parse(date);
+                      if (team1Name.isNotEmpty &&
+                          team2Name.isNotEmpty &&
+                          time.isNotEmpty &&
+                          date.isNotEmpty &&
+                          durationMinutes != null &&
+                          durationMinutes > 0 &&
+                          _selectedLeagueType != null) { // NEW: Validate league type
+                        final DateTime fixtureDate = DateTime.parse(date);
+                        List<String> timeParts = time.split(':');
+                        final DateTime scheduledStart = DateTime(
+                          fixtureDate.year,
+                          fixtureDate.month,
+                          fixtureDate.day,
+                          int.parse(timeParts[0]),
+                          int.parse(timeParts[1]),
+                        );
 
-                          if (documentSnapshot == null) {
-                            // Add new fixture to Firestore.
-                            await _fixtures.add({
-                              'team1Name': team1Name,
-                              'team2Name': team2Name,
-                              'time': time,
-                              'date': date,
-                              'timestamp': Timestamp.fromDate(fixtureDateTime), // Store timestamp for efficient date-based queries.
-                            });
-                          } else {
-                            // Update existing fixture in Firestore.
-                            await _fixtures.doc(documentSnapshot.id).update({
-                              'team1Name': team1Name,
-                              'team2Name': team2Name,
-                              'time': time,
-                              'date': date,
-                              'timestamp': Timestamp.fromDate(fixtureDateTime),
-                            });
-                          }
-                          Navigator.pop(context); // Close the bottom sheet.
+                        final DateTime scheduledEnd =
+                            scheduledStart.add(Duration(minutes: durationMinutes));
+
+                        Map<String, dynamic> fixtureData = {
+                          'team1Name': team1Name,
+                          'team2Name': team2Name,
+                          'time': time,
+                          'date': date,
+                          'timestamp': Timestamp.fromDate(scheduledStart),
+                          'durationMinutes': durationMinutes,
+                          'scheduledEndTimeStamp': Timestamp.fromDate(scheduledEnd),
+                          'matchStatus': 'scheduled',
+                          'score': '0 - 0', // Always initialize with default score
+                          'leagueType': _selectedLeagueType!.displayName, // NEW: Save league type
+                        };
+
+                        if (documentSnapshot == null) {
+                          await _fixtures.add(fixtureData);
                         } else {
-                          // Show a snackbar if fields are empty.
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Please fill in all fields')),
-                          );
+                          await _fixtures.doc(documentSnapshot.id).update(fixtureData);
                         }
-                      },
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[800], foregroundColor: Colors.white),
-                      child: Text(documentSnapshot == null ? 'Add' : 'Update'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+
+                        _team1NameController.text = '';
+                        _team2NameController.text = '';
+                        _timeController.text = '';
+                        _dateController.text = '';
+                        _durationController.text = '';
+                        _selectedLeagueType = null; // NEW: Clear selected league type
+                        Navigator.pop(context);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text(
+                                  'Please fill in all fields, ensure duration is a positive number, and select a league type.')),
+                        );
+                      }
+                    },
+                  )
+                ],
+              ),
+            );
+          },
         );
       },
     );
   }
 
-  // Function to delete a fixture from Firestore.
   Future<void> _deleteFixture(String fixtureId) async {
     await _fixtures.doc(fixtureId).delete();
-    // Show a confirmation snackbar.
+
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Fixture deleted successfully!')),
+      const SnackBar(content: Text('You have successfully deleted a fixture')),
     );
   }
 
-  // Function to show a confirmation dialog before deleting.
-  Future<void> _confirmDelete(String fixtureId) async {
-    return showDialog(
+  // --- NEW: Score Update Dialog Function (Unchanged) ---
+  Future<void> _showScoreUpdateDialog(DocumentSnapshot fixtureDocument) async {
+    final data = fixtureDocument.data() as Map<String, dynamic>;
+    final String currentScore = data['score'] ?? '0 - 0';
+    final String team1Name = data['team1Name'] ?? 'Team 1';
+    final String team2Name = data['team2Name'] ?? 'Team 2';
+
+    TextEditingController team1ScoreController = TextEditingController();
+    TextEditingController team2ScoreController = TextEditingController();
+
+    // Pre-fill with current scores if available
+    final List<String> scoreParts = currentScore.split(' - ');
+    if (scoreParts.length == 2) {
+      team1ScoreController.text = scoreParts[0].trim();
+      team2ScoreController.text = scoreParts[1].trim();
+    }
+
+    return showDialog<void>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Confirm Deletion', style: TextStyle(color: Colors.blue)),
-          content: const Text('Are you sure you want to delete this fixture? This action cannot be undone.'),
+          title: const Text('Update Score'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Text('Match: $team1Name vs $team2Name'),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: team1ScoreController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: '$team1Name Score',
+                        border: const OutlineInputBorder(),
+                      ),
+                    ),
+                  ),
+                  const Text(' - ', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                  Expanded(
+                    child: TextField(
+                      controller: team2ScoreController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: '$team2Name Score',
+                        border: const OutlineInputBorder(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
           actions: <Widget>[
             TextButton(
-              onPressed: () => Navigator.of(context).pop(), // Close dialog on Cancel.
               child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
             ),
             ElevatedButton(
-              onPressed: () {
-                _deleteFixture(fixtureId); // Proceed with deletion.
-                Navigator.of(context).pop(); // Close the dialog.
+              child: const Text('Update'),
+              onPressed: () async {
+                final int? team1Score = int.tryParse(team1ScoreController.text);
+                final int? team2Score = int.tryParse(team2ScoreController.text);
+
+                if (team1Score != null && team2Score != null && team1Score >= 0 && team2Score >= 0) {
+                  await _fixtures.doc(fixtureDocument.id).update({
+                    'score': '$team1Score - $team2Score',
+                  });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Score updated successfully!')),
+                  );
+                  Navigator.of(context).pop();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please enter valid, non-negative scores.')),
+                  );
+                }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
-              child: const Text('Delete'),
             ),
           ],
         );
       },
     );
   }
+  // --- END: Score Update Dialog Function ---
 
-  // Helper widget to build the date selection buttons.
-  // [text] is the display text for the button (e.g., "Today", "Upcoming").
-  // [mode] defines the filtering behavior ('day', 'upcoming', 'past').
-  // [date] is the DateTime object used as a reference point for the filter.
-  Widget _buildDateButton(String text, String mode, DateTime date) {
-    // Determine if the current button is selected based on _filterMode and _selectedDate.
-    final bool isSelected = (_filterMode == mode) &&
-        (_filterMode != 'day' || (_selectedDate.year == date.year && _selectedDate.month == date.month && _selectedDate.day == date.day));
 
-    return OutlinedButton(
-      onPressed: () {
-        setState(() {
-          _filterMode = mode;
-          _selectedDate = DateTime(date.year, date.month, date.day); // Normalize to start of day
-        });
-      },
-      style: OutlinedButton.styleFrom(
-        backgroundColor: isSelected ? Colors.blue[700] : Colors.transparent, // Filled when selected, transparent when not
-        side: BorderSide(color: isSelected ? Colors.transparent : Colors.blue.shade700), // No border when selected, blue border otherwise
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: isSelected ? Colors.white : Colors.blue[700], // White text when selected, blue otherwise
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-        ),
-      ),
-    );
+  // Method to get the filtered stream based on _selectedFixtureFilter and _selectedLeagueFilter
+  Stream<QuerySnapshot> _getFilteredFixturesStream() {
+    DateTime now = DateTime.now();
+    DateTime todayStart = DateTime(now.year, now.month, now.day);
+    DateTime todayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59);
+
+    Query query = _fixtures;
+
+    // Apply fixture filter (Past, Today, Upcoming)
+    switch (_selectedFixtureFilter) {
+      case FixtureFilter.past:
+        query = query
+            .where('scheduledEndTimeStamp', isLessThan: Timestamp.fromDate(todayStart))
+            .orderBy('scheduledEndTimeStamp', descending: true); // Most recent past first
+        break;
+      case FixtureFilter.today:
+        query = query
+            .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(todayStart))
+            .where('timestamp', isLessThanOrEqualTo: Timestamp.fromDate(todayEnd))
+            .orderBy('timestamp', descending: false);
+        break;
+      case FixtureFilter.upcoming:
+        query = query
+            .where('timestamp', isGreaterThan: Timestamp.fromDate(todayEnd))
+            .orderBy('timestamp', descending: false);
+        break;
+    }
+
+    // NEW: Apply league filter
+    if (_selectedLeagueFilter != LeagueFilter.all) {
+      query = query.where('leagueType', isEqualTo: _selectedLeagueFilter.displayName);
+    }
+
+    return query.snapshots();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Get today, yesterday, and tomorrow for button logic.
-    final DateTime now = DateTime.now();
-    final DateTime today = DateTime(now.year, now.month, now.day);
-    final DateTime yesterday = today.subtract(const Duration(days: 1));
-    final DateTime tomorrow = today.add(const Duration(days: 1));
-
-    // Determine the Firestore query based on the selected filter mode.
-    Query firestoreQuery;
-    if (_filterMode == 'upcoming') {
-      // Show all fixtures from tomorrow onwards.
-      firestoreQuery = _fixtures.where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(tomorrow)).orderBy('timestamp');
-    } else if (_filterMode == 'past') {
-      // Show all fixtures up to (and including) yesterday.
-      firestoreQuery = _fixtures.where('timestamp', isLessThanOrEqualTo: Timestamp.fromDate(today.subtract(const Duration(milliseconds: 1)))).orderBy('timestamp', descending: true);
-      // We use 'less than or equal to start of today' for "past" to exclude today.
-      // Subtracting 1 millisecond from 'today' gets us to the very end of yesterday.
-    } else {
-      // 'day' mode: Show fixtures only for the _selectedDate.
-      final DateTime startOfDay = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
-      final DateTime endOfDay = startOfDay.add(const Duration(days: 1)).subtract(const Duration(milliseconds: 1));
-      firestoreQuery = _fixtures
-          .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-          .where('timestamp', isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
-          .orderBy('timestamp');
-    }
-
     return Scaffold(
       appBar: AppBar(
-        // Leading drawer icon (remains)
-        leading: Builder(
-          builder: (BuildContext context) {
-            return IconButton(
-              icon: const Icon(Icons.menu, color: Colors.white),
-              onPressed: () {
-                Scaffold.of(context).openDrawer();
-              },
-            );
-          },
-        ),
-        title: const Text('Fixtures', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        centerTitle: true,
-        backgroundColor: Colors.blue[900],
-        elevation: 0, // Flat app bar look.
-        // Actions: Back button moved to actions
-        actions: [
-          // Back Button
-          IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () {
-              Navigator.pop(context); // Navigates back to the previous screen
-            },
-          ),
-          const SizedBox(width: 8), // Padding on the right
-        ],
-        // Removed the 'bottom' property from AppBar as buttons are moved to body
+        title: const Text('Fixtures'),
+        backgroundColor: const Color(0xFF144781),
+        foregroundColor: Colors.white,
       ),
-      drawer: const HomeDrawer(), // Your custom drawer.
-      body: Column( // Use Column to stack buttons and StreamBuilder content
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      body: Column(
         children: [
-          // Moved the filter buttons here, outside the AppBar
           Padding(
-            padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0), // Sufficient padding
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
               children: [
-                // Buttons for Past, Today, Upcoming.
-                _buildDateButton('Past', 'past', yesterday), // Reference date for past is yesterday
-                _buildDateButton('Today', 'day', today), // Reference date for today is today
-                _buildDateButton('Upcoming', 'upcoming', tomorrow), // Reference date for upcoming is tomorrow
+                SegmentedButton<FixtureFilter>(
+                  segments: const <ButtonSegment<FixtureFilter>>[
+                    ButtonSegment<FixtureFilter>(
+                      value: FixtureFilter.past,
+                      label: Text('Past'),
+                      icon: Icon(Icons.history),
+                    ),
+                    ButtonSegment<FixtureFilter>(
+                      value: FixtureFilter.today,
+                      label: Text('Today'),
+                      icon: Icon(Icons.calendar_today),
+                    ),
+                    ButtonSegment<FixtureFilter>(
+                      value: FixtureFilter.upcoming,
+                      label: Text('Upcoming'),
+                      icon: Icon(Icons.event_note),
+                    ),
+                  ],
+                  selected: <FixtureFilter>{_selectedFixtureFilter},
+                  onSelectionChanged: (Set<FixtureFilter> newSelection) {
+                    setState(() {
+                      _selectedFixtureFilter = newSelection.first;
+                    });
+                  },
+                  style: SegmentedButton.styleFrom(
+                    foregroundColor: const Color(0xFF144781), // Color for selected text/icon
+                    selectedForegroundColor: Colors.white,
+                    selectedBackgroundColor: const Color(0xFF144781), // Background for selected
+                    side: const BorderSide(color: Color(0xFF144781)), // Border color
+                  ),
+                ),
+                const SizedBox(height: 10), // Spacing between the two filter buttons
+                // NEW: Segmented button for League Filter
+                SingleChildScrollView( // Use SingleChildScrollView for horizontal scrolling if many options
+                  scrollDirection: Axis.horizontal,
+                  child: SegmentedButton<LeagueFilter>(
+                    segments: LeagueFilter.values.map((LeagueFilter league) {
+                      return ButtonSegment<LeagueFilter>(
+                        value: league,
+                        label: Text(league.displayName),
+                      );
+                    }).toList(),
+                    selected: <LeagueFilter>{_selectedLeagueFilter},
+                    onSelectionChanged: (Set<LeagueFilter> newSelection) {
+                      setState(() {
+                        _selectedLeagueFilter = newSelection.first;
+                      });
+                    },
+                    style: SegmentedButton.styleFrom(
+                      foregroundColor: const Color(0xFF144781),
+                      selectedForegroundColor: Colors.white,
+                      selectedBackgroundColor: const Color(0xFF144781),
+                      side: const BorderSide(color: Color(0xFF144781)),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
-          const SizedBox(height: 16), // Spacing between buttons and content
+          Expanded(
+            child: StreamBuilder(
+              stream: _getFilteredFixturesStream(), // Use the new filtered stream
+              builder: (context, AsyncSnapshot<QuerySnapshot> streamSnapshot) {
+                if (streamSnapshot.hasError) {
+                  return Center(child: Text('Error: ${streamSnapshot.error}'));
+                }
 
-          // The StreamBuilder for displaying fixtures takes the rest of the space
-          Expanded( // Use Expanded to make the ListView fill remaining space
-            child: StreamBuilder<QuerySnapshot>(
-              stream: firestoreQuery.snapshots(),
-              builder: (context, snapshot) {
-                // Handle potential Firestore errors.
-                if (snapshot.hasError) {
-                  print("Firestore Error: ${snapshot.error}"); // Log the error for debugging.
-                  return Center(
-                      child: Text('Error loading data: ${snapshot.error}', style: const TextStyle(color: Colors.red, fontSize: 16)));
+                if (streamSnapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
                 }
-                // Show a loading indicator while data is being fetched.
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent)));
-                }
-                // If no data is available from Firestore at all.
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  String emptyMessage;
-                  if (_filterMode == 'upcoming') {
-                    emptyMessage = 'No upcoming fixtures scheduled.';
-                  } else if (_filterMode == 'past') {
-                    emptyMessage = 'No past fixtures found.';
-                  } else {
-                    emptyMessage = 'No fixtures for today.';
-                  }
+
+                if (!streamSnapshot.hasData || streamSnapshot.data!.docs.isEmpty) {
                   return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.event_note, size: 80, color: Colors.grey),
-                        const SizedBox(height: 10),
-                        Text(emptyMessage, style: const TextStyle(color: Colors.grey, fontSize: 18, fontStyle: FontStyle.italic)),
-                        const Text('Tap the "+" button to add one!', style: TextStyle(color: Colors.grey, fontSize: 14)),
-                      ],
-                    ),
+                    child: Text('No ${_selectedFixtureFilter.name} fixtures found for ${_selectedLeagueFilter.displayName}.'),
                   );
                 }
 
-                final List<DocumentSnapshot> displayFixtures = snapshot.data!.docs;
-
-                // Display the filtered list of fixtures.
                 return ListView.builder(
-                  padding: const EdgeInsets.all(16.0),
-                  itemCount: displayFixtures.length,
+                  itemCount: streamSnapshot.data!.docs.length,
                   itemBuilder: (context, index) {
-                    final document = displayFixtures[index];
-                    final data = document.data() as Map<String, dynamic>;
-
-                    final String team1Name = data['team1Name'] ?? 'Team A';
-                    final String team2Name = data['team2Name'] ?? 'Team B';
+                    final DocumentSnapshot documentSnapshot =
+                        streamSnapshot.data!.docs[index];
+                    final data = documentSnapshot.data() as Map<String, dynamic>;
+                    final String team1Name = data['team1Name'] ?? 'N/A';
+                    final String team2Name = data['team2Name'] ?? 'N/A';
                     final String time = data['time'] ?? 'N/A';
-                    final String date = data['date'] ?? 'N/A'; // Also display the date
-                    // You can potentially fetch logo URLs here if stored in Firestore
-                    // final String? team1LogoUrl = data['team1LogoUrl'];
-                    // final String? team2LogoUrl = data['team2LogoUrl'];
+                    final String date = data['date'] ?? 'N/A';
+                    final String matchStatus = data['matchStatus'] ?? 'scheduled';
+                    final String score = data['score'] ?? '0 - 0';
+                    final String leagueType = data['leagueType'] ?? 'N/A'; // NEW: Get league type
 
                     return Card(
-                      margin: const EdgeInsets.only(bottom: 12.0),
-                      elevation: 4.0, // Increased elevation for more depth
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15.0), // More rounded corners
-                      ),
-                      child: InkWell( // Make the card tappable for editing
-                        onTap: () => _upsertFixture(document), // Pass the document to edit.
-                        borderRadius: BorderRadius.circular(15.0),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
+                      margin: const EdgeInsets.all(10),
+                      child: ListTile(
+                        title: Text('$team1Name vs $team2Name'),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Date: $date'),
+                            Text('Time: $time'),
+                            Text('League: $leagueType'), // NEW: Display league type
+                            Text('Status: ${matchStatus.toUpperCase()}'),
+                            Text('Score: $score'),
+                          ],
+                        ),
+                        trailing: SizedBox(
+                          width: 150, // Increased width to accommodate 3 buttons
                           child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min, // Use minimum space
                             children: [
-                              // Left Team
-                              Expanded(
-                                flex: 3,
-                                child: Column(
-                                  children: [
-                                    Container(
-                                      width: 60.0, // Slightly larger logo area
-                                      height: 60.0,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: Colors.grey[200], // Lighter grey for placeholder
-                                        border: Border.all(color: Colors.blue.shade200, width: 1.0), // Subtle border
-                                      ),
-                                      // You would load an image here if a URL is available:
-                                      // child: team1LogoUrl != null
-                                      //      ? ClipOval(child: Image.network(team1LogoUrl, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => Icon(Icons.error)))
-                                      //      : Icon(Icons.shield_outlined, size: 30.0, color: Colors.blueGrey.shade400),
-                                      child: Icon(Icons.shield_outlined, size: 30.0, color: Colors.blueGrey.shade400), // Placeholder icon
-                                    ),
-                                    const SizedBox(height: 8.0),
-                                    Text(
-                                      team1Name,
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold, color: Colors.blueGrey),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              // Center Information (Time & Status)
-                              Expanded(
-                                flex: 2,
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      time,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18.0,
-                                        color: Colors.blue, // Highlight time
-                                      ),
-                                    ),
-                                    // Display the date for all fixtures
-                                    Text(
-                                      DateFormat('MMM d, y').format(DateTime.parse(date)),
-                                      style: TextStyle(fontSize: 12.0, color: Colors.grey[600]),
-                                    ),
-                                    const SizedBox(height: 8.0),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
-                                      decoration: BoxDecoration(
-                                        color: Colors.blue[50], // Lighter blue background
-                                        borderRadius: BorderRadius.circular(20.0), // More rounded pill shape
-                                        border: Border.all(color: Colors.blue.shade100),
-                                      ),
-                                      child: Text('Scheduled', style: TextStyle(color: Colors.blue[800], fontSize: 11.0, fontWeight: FontWeight.w600)),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              // Right Team
-                              Expanded(
-                                flex: 3,
-                                child: Column(
-                                  children: [
-                                    Container(
-                                      width: 60.0,
-                                      height: 60.0,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: Colors.grey[200],
-                                        border: Border.all(color: Colors.blue.shade200, width: 1.0),
-                                      ),
-                                      // You would load an image here if a URL is available:
-                                      // child: team2LogoUrl != null
-                                      //      ? ClipOval(child: Image.network(team2LogoUrl, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => Icon(Icons.error)))
-                                      //      : Icon(Icons.shield_outlined, size: 30.0, color: Colors.blueGrey.shade400),
-                                      child: Icon(Icons.shield_outlined, size: 30.0, color: Colors.blueGrey.shade400),
-                                    ),
-                                    const SizedBox(height: 8.0),
-                                    Text(
-                                      team2Name,
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold, color: Colors.blueGrey),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              // Delete Button
                               IconButton(
-                                icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 24),
-                                onPressed: () => _confirmDelete(document.id), // Confirm before deleting.
+                                onPressed: () => _showScoreUpdateDialog(documentSnapshot), // NEW SCORE BUTTON
+                                icon: const Icon(Icons.score, color: Colors.green),
+                                tooltip: 'Update Score',
+                              ),
+                              IconButton(
+                                onPressed: () => _upsertFixture(documentSnapshot),
+                                icon: const Icon(Icons.edit),
+                                tooltip: 'Edit Fixture',
+                              ),
+                              IconButton(
+                                onPressed: () =>
+                                    _deleteFixture(documentSnapshot.id),
+                                icon: const Icon(Icons.delete),
+                                tooltip: 'Delete Fixture',
                               ),
                             ],
                           ),
@@ -541,12 +587,9 @@ class _FixturesPageState extends State<FixturesPage> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _upsertFixture(), // Call without arguments to add a new fixture.
-        backgroundColor: Colors.blue[700],
-        foregroundColor: Colors.white,
-        elevation: 6,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        child: const Icon(Icons.add_circle_outline, size: 30),
+        backgroundColor: const Color(0xFF144781),
+        onPressed: () => _upsertFixture(),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }

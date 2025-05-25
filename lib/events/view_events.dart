@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:hockey_union/events/event_description.dart';
+import 'package:hockey_union/events/event_description.dart'; // Assuming EventTeamsPage is in this file
 import 'package:hockey_union/home/home_drawer.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
@@ -12,69 +12,155 @@ class EventDetailPage extends StatefulWidget {
 }
 
 class _EventDetailPageState extends State<EventDetailPage> {
-  bool _showRegistrationPopup = false;
+  bool _showEventDetailsPopup = false;
   Map<String, dynamic>? selectedEvent;
-  String _currentView = 'all';
+  String _currentView = 'all'; // Keep track of the current view
 
-  final String userId = 'CURRENT_USER_ID';
-  final String userEmail = 'user@example.com';
+  // Placeholder for the current user's ID and email.
+  // In a real application, these would be fetched from your authentication system (e.g., Firebase Auth).
+  final String userId = 'CURRENT_USER_ID'; // Replace with actual user ID
+  final String userEmail = 'user@example.com'; // Replace with actual user email
 
-  void _toggleRegistrationPopup(Map<String, dynamic> event) {
+  // Modified to accept the current view
+  void _toggleEventDetailsPopup(Map<String, dynamic> event) {
     setState(() {
       selectedEvent = event;
-      _showRegistrationPopup = !_showRegistrationPopup;
+      _showEventDetailsPopup = !_showEventDetailsPopup;
     });
   }
 
-  Future<void> _registerForEvent(String eventId) async {
-    final regRef = FirebaseFirestore.instance
+  Future<bool> _isEventRegistered(String eventId) async {
+    final regDoc = await FirebaseFirestore.instance
         .collection('Events')
         .doc(eventId)
         .collection('registration')
-        .doc(userId);
+        .doc(userId)
+        .get();
+    return regDoc.exists;
+  }
 
-    try {
-      await regRef.set({
-        'userID': userId,
-        'email': userEmail,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
+  Future<void> _registerForEvent(String eventId) async {
+    final bool confirmRegistration = await showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Confirm Registration'),
+              content: const Text('Are you sure you want to register for this event?'),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('Register'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
 
-      setState(() {
-        _showRegistrationPopup = false;
-      });
+    if (confirmRegistration) {
+      final regRef = FirebaseFirestore.instance
+          .collection('Events')
+          .doc(eventId)
+          .collection('registration')
+          .doc(userId);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Successfully registered for event')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to register: $e')),
-      );
+      try {
+        await regRef.set({
+          'userID': userId,
+          'email': userEmail,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+
+        setState(() {
+          _showEventDetailsPopup = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Successfully registered for event!')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to register: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _unregisterFromEvent(String eventId) async {
+    final bool confirmUnregistration = await showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Confirm Unregistration'),
+              content: const Text('Are you sure you want to unregister from this event?'),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                  child: const Text('Unregister'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+
+    if (confirmUnregistration) {
+      final regRef = FirebaseFirestore.instance
+          .collection('Events')
+          .doc(eventId)
+          .collection('registration')
+          .doc(userId);
+
+      try {
+        await regRef.delete();
+
+        setState(() {
+          _showEventDetailsPopup = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Successfully unregistered from event!')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to unregister: $e')),
+        );
+      }
     }
   }
 
   Future<void> _deleteEvent(String eventId) async {
     final bool confirmDelete = await showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Confirm Deletion'),
-          content: const Text('Are you sure you want to delete this event? This action cannot be undone.'),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('Delete'),
-            ),
-          ],
-        );
-      },
-    ) ?? false;
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Confirm Deletion'),
+              content: const Text(
+                  'Are you sure you want to delete this event? This action cannot be undone.'),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                  child: const Text('Delete'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
     if (confirmDelete) {
       try {
         await FirebaseFirestore.instance.collection('Events').doc(eventId).delete();
@@ -88,7 +174,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
         }
 
         setState(() {
-          _showRegistrationPopup = false;
+          _showEventDetailsPopup = false;
           selectedEvent = null;
         });
 
@@ -107,7 +193,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
     final Timestamp timestamp = event['date'];
     final DateTime eventDate = timestamp.toDate();
 
-    return GestureDetector( // Wrap the Card with GestureDetector for tap functionality
+    return GestureDetector(
       onTap: () {
         // Navigate to the EventTeamsPage, passing the event data
         Navigator.push(
@@ -163,10 +249,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
               ),
               IconButton(
                 icon: const Icon(Icons.info_outline),
-                // Removed direct popup toggle from here, as the card tap handles navigation
-                // If you still need a separate info button for a *different* popup, adjust this.
-                // For now, it will open the registration popup if you tap the icon directly.
-                onPressed: () => _toggleRegistrationPopup(event),
+                onPressed: () => _toggleEventDetailsPopup(event), // No need to pass _currentView here
               ),
             ],
           ),
@@ -180,7 +263,9 @@ class _EventDetailPageState extends State<EventDetailPage> {
       stream: FirebaseFirestore.instance.collection('Events').snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) return const Center(child: Text('Error loading events'));
-        if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
         final events = snapshot.data!.docs.map((doc) {
           final data = doc.data() as Map<String, dynamic>;
@@ -301,16 +386,17 @@ class _EventDetailPageState extends State<EventDetailPage> {
       body: Stack(
         children: [
           _currentView == 'all' ? _buildAllEventsList() : _buildMyEventsList(),
-          // The registration popup is still here if the info icon is pressed
-          if (_showRegistrationPopup && selectedEvent != null)
+          if (_showEventDetailsPopup && selectedEvent != null)
             Positioned.fill(
               child: GestureDetector(
-                onTap: () => setState(() => _showRegistrationPopup = false),
+                onTap: () => setState(() => _showEventDetailsPopup = false),
                 child: Container(
                   color: Colors.black.withOpacity(0.5),
                   child: Center(
                     child: GestureDetector(
-                      onTap: () {},
+                      onTap: () {
+                        // Prevents the popup from closing when tapping inside
+                      },
                       child: Container(
                         width: 300,
                         padding: const EdgeInsets.all(20),
@@ -318,34 +404,55 @@ class _EventDetailPageState extends State<EventDetailPage> {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text('Event Details', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 10),
-                            Text('Name: ${selectedEvent!['nameOfEvent'] ?? 'N/A'}'),
-                            Text('Location: ${selectedEvent!['location'] ?? 'N/A'}'),
-                            Text('Date: ${DateFormat('yyyy-MM-dd – kk:mm').format((selectedEvent!['date'] as Timestamp).toDate())}'),
-                            Text('Volunteers: ${selectedEvent!['volunteerAssignments'] ?? 'N/A'}'),
-                            Text('Notes: ${selectedEvent!['notes'] ?? 'No notes'}'),
-                            Text('Duration: ${selectedEvent!['duration'] ?? 'N/A'}'),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: () => _registerForEvent(selectedEvent!['id']),
-                              child: const Text('Register for this event'),
-                            ),
-                            const SizedBox(height: 8),
-                            ElevatedButton(
-                              onPressed: () => _deleteEvent(selectedEvent!['id']),
-                              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                              child: const Text('Delete Event', style: TextStyle(color: Colors.white)),
-                            ),
-                            const SizedBox(height: 8),
-                            ElevatedButton(
-                              onPressed: () => setState(() => _showRegistrationPopup = false),
-                              child: const Text('Close'),
-                            ),
-                          ],
+                        child: FutureBuilder<bool>(
+                          future: _isEventRegistered(selectedEvent!['id']),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              return const Center(child: CircularProgressIndicator());
+                            }
+                            final bool isRegistered = snapshot.data ?? false;
+                            return Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text('Event Details',
+                                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 10),
+                                Text('Name: ${selectedEvent!['nameOfEvent'] ?? 'N/A'}'),
+                                Text('Location: ${selectedEvent!['location'] ?? 'N/A'}'),
+                                Text(
+                                    'Date: ${DateFormat('yyyy-MM-dd – kk:mm').format((selectedEvent!['date'] as Timestamp).toDate())}'),
+                                Text('Volunteers: ${selectedEvent!['volunteerAssignments'] ?? 'N/A'}'),
+                                Text('Notes: ${selectedEvent!['notes'] ?? 'No notes'}'),
+                                Text('Duration: ${selectedEvent!['duration'] ?? 'N/A'}'),
+                                const SizedBox(height: 16),
+                                // Conditional rendering of Register/Unregister button
+                                if (_currentView == 'my' && isRegistered)
+                                  ElevatedButton(
+                                    onPressed: () => _unregisterFromEvent(selectedEvent!['id']),
+                                    style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                                    child: const Text('Unregister from this event',
+                                        style: TextStyle(color: Colors.white)),
+                                  )
+                                else if (_currentView == 'all' && !isRegistered)
+                                  ElevatedButton(
+                                    onPressed: () => _registerForEvent(selectedEvent!['id']),
+                                    child: const Text('Register for this event'),
+                                  ),
+                                const SizedBox(height: 8),
+                                ElevatedButton(
+                                  onPressed: () => _deleteEvent(selectedEvent!['id']),
+                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                                  child:
+                                      const Text('Delete Event', style: TextStyle(color: Colors.white)),
+                                ),
+                                const SizedBox(height: 8),
+                                ElevatedButton(
+                                  onPressed: () => setState(() => _showEventDetailsPopup = false),
+                                  child: const Text('Close'),
+                                ),
+                              ],
+                            );
+                          },
                         ),
                       ),
                     ),

@@ -22,7 +22,6 @@ class Auth {
     );
   }
 
-  
   Future<UserCredential> createUserWithEmailAndPassword({
     required String email,
     required String password,
@@ -33,16 +32,13 @@ class Auth {
       password: password,
     );
 
-    
     await userCredential.user?.updateDisplayName(fullName);
-
     
     await _saveUserToFirestore(userCredential.user!, fullName);
 
     return userCredential;
   }
 
-  
   Future<UserCredential?> signInWithGoogle() async {
     try {
       
@@ -54,14 +50,12 @@ class Auth {
 
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
-
       
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      
       final userCredential =
           await _firebaseAuth.signInWithCredential(credential);
 
@@ -83,8 +77,7 @@ class Auth {
           'photoURL': user.photoURL ?? '',
           'lastSignIn': FieldValue.serverTimestamp(),
         };
-
-        
+ 
         await _firestore.collection('Users').doc(user.uid).set(
               userData,
               SetOptions(merge: true), 
@@ -97,7 +90,6 @@ class Auth {
     }
   }
 
-  
   Future<void> _saveUserToFirestore(User user, String fullName) async {
     final names = fullName.split(' ');
     final firstName = names.isNotEmpty ? names[0] : '';
@@ -120,7 +112,6 @@ class Auth {
     await _firebaseAuth.sendPasswordResetEmail(email: email);
   }
 
-  
   Future<void> signOut() async {
     await _firebaseAuth.signOut();
     await _googleSignIn.signOut(); 

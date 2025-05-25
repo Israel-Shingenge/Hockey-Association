@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:hockey_union/events/event_location.dart';
-import 'package:intl/intl.dart'; // For date formatting
+import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore
 
 class EventTeamsPage extends StatefulWidget {
-  final Map<String, dynamic> event; // The event data passed from EventDetailPage
+  final Map<String, dynamic> event;
 
   const EventTeamsPage({super.key, required this.event});
 
@@ -12,250 +13,320 @@ class EventTeamsPage extends StatefulWidget {
 }
 
 class _EventTeamsPageState extends State<EventTeamsPage> {
-  // Dummy data for teams. In a real app, you'd fetch this from Firebase
-  // based on event['id'] and 'teams' collection.
-  // I've added a 'division' field for sorting.
-  final  List<Map<String, String>> _teams = [
-      {
-        'name': 'Wanderers',
-        'division': 'Womans Division',
-        'image': 'assets/images/wanderers.png', // Placeholder
-      },
-      {
-        'name': 'Bolton',
-        'division': 'Mens Division',
-        'image': 'assets/images/Sparta.png', // Generic placeholder
-      },
-      {
-        'name': 'Boca Junior',
-        'division': 'Mens Division',
-        'image': 'assets/images/Saints.png', // Generic placeholder
-      },
-      {
-        'name': 'Stars',
-        'division': 'Womans Division',
-        'image': 'assets/images/DTS.png', // Generic placeholder
-      },
-    ];
+  late List<Map<String, dynamic>> _teams;
+  String _currentSortDivision = 'all';
 
-  String _currentSortDivision = 'all'; // 'all', 'men', 'women'
+  @override
+  void initState() {
+    super.initState();
 
-  List<Map<String, String>> get _sortedTeams {
+    final teamsFromEvent = widget.event['teams'];
+    if (teamsFromEvent != null && teamsFromEvent is List) {
+      _teams = teamsFromEvent.map<Map<String, dynamic>>((team) {
+        return Map<String, dynamic>.from(team);
+      }).toList();
+    } else {
+      _teams = [];
+    }
+  }
+
+  List<Map<String, dynamic>> get _sortedTeams {
     if (_currentSortDivision == 'men') {
       return _teams.where((team) => team['division'] == 'Mens Division').toList();
     } else if (_currentSortDivision == 'women') {
       return _teams.where((team) => team['division'] == 'Womans Division').toList();
     }
-    return _teams; // 'all' or default
+    return _teams;
+  }
+
+  // New method to get the stream of registration count
+  Stream<int> _getRegistrationCountStream(String eventId) {
+    return FirebaseFirestore.instance
+        .collection('Events')
+        .doc(eventId)
+        .collection('registration')
+        .snapshots()
+        .map((snapshot) => snapshot.docs.length);
   }
 
   @override
   Widget build(BuildContext context) {
-    // Assuming event['date'] is a Timestamp from Firebase
-    final DateTime eventDate = (widget.event['date'] as dynamic)?.toDate() ?? DateTime.now();
+    final dynamic dateRaw = widget.event['date'];
+    final DateTime eventDate = dateRaw is DateTime
+        ? dateRaw
+        : (dateRaw?.toDate() ?? DateTime.now());
+
+    // Get the event ID
+    final String eventId = widget.event['id'];
 
     return Scaffold(
-      backgroundColor: Colors.grey[100], // Light grey background
+      backgroundColor: Colors.blueGrey.shade50,
       appBar: AppBar(
         backgroundColor: Colors.white,
-        elevation: 0,
+        elevation: 2,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black54),
-          onPressed: () {
-            Navigator.pop(context); // Go back to the previous page
-          },
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.black87),
+          onPressed: () => Navigator.pop(context),
         ),
+        title: Text(
+          widget.event['nameOfEvent'] ?? 'Event Details',
+          style: const TextStyle(
+            color: Colors.black87,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // White Card Container
-              Card(
-                elevation: 1,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.0),
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Event Info Card
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                gradient: LinearGradient(
+                  colors: [Colors.black, Colors.blue.shade600],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-                margin: EdgeInsets.zero,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.blue.shade200.withOpacity(0.6),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  CircleAvatar(
+                    radius: 70,
+                    backgroundColor: Colors.white.withOpacity(0.8),
+                    child: Icon(
+                      Icons.sports_hockey,
+                      size: 90,
+                      color: Colors.blue.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    widget.event['nameOfEvent'] ?? 'Event Name',
+                    style: const TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 1.2,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    DateFormat('dd MMMM yyyy').format(eventDate),
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.blue.shade100,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Center(
-                        child: Image.asset(
-                          'assets/images/FNB-Classic-Clashes.png', // Your logo asset
-                          height: 350, // Adjust size as needed
-                          fit: BoxFit.fill,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        widget.event['nameOfEvent'] ?? 'Event Name', // Use event name
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Text(
-                            'Number of participants: ',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[600],
+                      // StreamBuilder for dynamic participant count
+                      StreamBuilder<int>(
+                        stream: _getRegistrationCountStream(eventId),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ); // Show loading
+                          }
+                          if (snapshot.hasError) {
+                            return Text(
+                              'Error: ${snapshot.error}',
+                              style: const TextStyle(color: Colors.white),
+                            );
+                          }
+                          final int participantCount = snapshot.data ?? 0;
+                          return Chip(
+                            backgroundColor: Colors.white70,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
                             ),
-                          ),
-                          Text(
-                            '${_teams.length}', // Display current number of teams
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const Spacer(), // Pushes "Location" to the right
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => EventLocationPage(
-                                    locationName: widget.event['location'] ?? 'Windhoek',
-                                  ),
-                                ),
-                              );
-                            },
-                            child: Text(
-                              'Location',
+                            avatar: Icon(Icons.group, color: Colors.blue.shade700),
+                            label: Text(
+                              '$participantCount Participants',
                               style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.blue[700],
-                                decoration: TextDecoration.underline,
+                                color: Colors.blue.shade700,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                          ),
-
-                        ],
+                          );
+                        },
                       ),
-                      const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          Text(
-                            DateFormat('dd MMMM yyyy').format(eventDate),
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
+                      const SizedBox(width: 16),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white.withOpacity(0.9),
+                          foregroundColor: Colors.blue.shade700,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
                           ),
-                          const Spacer(), // Pushes "Sort" to the right
-                          PopupMenuButton<String>(
-                            onSelected: (String result) {
-                              setState(() {
-                                _currentSortDivision = result;
-                              });
-                            },
-                            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                              const PopupMenuItem<String>(
-                                value: 'all',
-                                child: Text('All Divisions'),
-                              ),
-                              const PopupMenuItem<String>(
-                                value: 'men',
-                                child: Text('Men\'s Division'),
-                              ),
-                              const PopupMenuItem<String>(
-                                value: 'women',
-                                child: Text('Women\'s Division'),
-                              ),
-                            ],
-                            child: Text(
-                              'Sort',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.blue[700],
-                                decoration: TextDecoration.underline,
-                              ),
-                            ),
+                          elevation: 3,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 10,
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        'Teams',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey[600],
                         ),
-                      ),
-                      const SizedBox(height: 10),
-                      // List of teams
-                      Column(
-                        children: _sortedTeams.map((team) => _buildTeamListItem(team)).toList(),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => EventLocationPage(
+                                locationName: widget.event['location'] ?? 'Windhoek',
+                              ),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.location_on_outlined),
+                        label: const Text('Location'),
                       ),
                     ],
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTeamListItem(Map<String, String> team) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: Row(
-        children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: Colors.grey[200],
-              borderRadius: BorderRadius.circular(8.0),
-              // If you have actual team logos, use DecorationImage
-              image: team['image'] != null && team['image']!.isNotEmpty
-                  ? DecorationImage(
-                      image: AssetImage(team['image']!),
-                      fit: BoxFit.cover,
-                    )
-                  : null, // No image if path is null/empty
             ),
-            child: team['image'] == null || team['image']!.isEmpty
-                ? const Icon(Icons.group, size: 30, color: Colors.grey) // Placeholder icon
-                : null, // Don't show icon if image is present
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+
+            const SizedBox(height: 28),
+
+            // Sort & Teams Header Row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  team['name']!,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                  'Teams',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.blueGrey.shade700,
                   ),
                 ),
-                Text(
-                  team['division']!,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[700],
+                PopupMenuButton<String>(
+                  onSelected: (String result) {
+                    setState(() {
+                      _currentSortDivision = result;
+                    });
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(value: 'all', child: Text('All Divisions')),
+                    const PopupMenuItem(value: 'men', child: Text('Men\'s Division')),
+                    const PopupMenuItem(value: 'women', child: Text('Women\'s Division')),
+                  ],
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade600,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.blue.shade300.withOpacity(0.6),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: const [
+                        Text(
+                          'Sort',
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(width: 6),
+                        Icon(Icons.arrow_drop_down, color: Colors.white),
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
-          ),
-        ],
+
+            const SizedBox(height: 12),
+
+            // Teams List
+            ListView.separated(
+              physics: const NeverScrollableScrollPhysics(),
+              shrinkWrap: true,
+              itemCount: _sortedTeams.length,
+              separatorBuilder: (_, __) => Divider(color: Colors.blueGrey.shade100, height: 20),
+              itemBuilder: (context, index) {
+                final team = _sortedTeams[index];
+                return Material(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () {
+                      // Handle team tap if needed
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                              image: (team['image'] != null && (team['image'] as String).isNotEmpty)
+                                  ? DecorationImage(
+                                      image: AssetImage(team['image']),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
+                            ),
+                            child: (team['image'] == null || (team['image'] as String).isEmpty)
+                                ? Icon(Icons.group, size: 36, color: Colors.blueGrey.shade300)
+                                : null,
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  team['name'] ?? 'Unnamed',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blueGrey.shade900,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  team['division'] ?? 'No division',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.blueGrey.shade600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.chevron_right, color: Colors.blueGrey),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

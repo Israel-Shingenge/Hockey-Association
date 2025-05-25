@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:hockey_union/home/home_drawer.dart';
 import 'package:hockey_union/teams/edit_team.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -14,7 +13,7 @@ class TeamSelectionPage extends StatefulWidget {
 }
 
 class _TeamSelectionPageState extends State<TeamSelectionPage> {
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  // Removed GlobalKey<ScaffoldState> _scaffoldKey as it's no longer needed for opening the drawer
   List<DocumentSnapshot> _userTeams = [];
   final Map<String, File?> _localLogos = {};
 
@@ -65,12 +64,14 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
     final uid = FirebaseAuth.instance.currentUser?.uid;
 
     return Scaffold(
-      key: _scaffoldKey,
+      // Removed key: _scaffoldKey
       appBar: AppBar(
+        // MODIFIED: Only keep the back button
         leading: IconButton(
-          icon: const Icon(Icons.menu),
-          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(), // Navigate back
         ),
+        // MODIFIED: Keep the logo in the center
         title: Center(
           child: SizedBox(
             height: 30,
@@ -107,7 +108,7 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
         ),
         actions: const [SizedBox(width: 56)],
       ),
-      drawer: const HomeDrawer(),
+      // REMOVED: drawer: const HomeDrawer(),
       body: uid == null
           ? const Center(child: Text('No user is logged in.'))
           : StreamBuilder<QuerySnapshot>(
@@ -124,7 +125,7 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
                 } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return const Center(child: Text('No teams available.'));
                 } else {
-                 _userTeams = snapshot.data!.docs;
+                  _userTeams = snapshot.data!.docs;
                     if (_localLogos.isEmpty) {
                       _loadLocalLogos();
                     }

@@ -167,8 +167,8 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                             child: Image.asset(
                               'assets/images/apple.png',
-                              width: 80,
-                              height: 80,
+                              width: 70,
+                              height: 70,
                             ),
                           ),
                         ),

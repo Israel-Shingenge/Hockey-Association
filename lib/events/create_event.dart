@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hockey_union/home/home_drawer.dart'; 
 import 'package:hockey_union/events/new_event.dart'; 
-import 'package:hockey_union/events/new_game.dart'; 
 
 class EventsPage extends StatelessWidget {
   const EventsPage({super.key});
@@ -108,25 +107,6 @@ class EventsPage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 16.0), // Space between buttons
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const AddGamePage()),
-                        );
-                      },
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.blue), // Blue border
-                        padding: const EdgeInsets.symmetric(vertical: 14.0),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-                      ),
-                      child: const Text(
-                        'ADD GAME',
-                        style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
