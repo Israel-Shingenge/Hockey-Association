@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hockey_union/home/home_drawer.dart'; // Import the HomeDrawer
-import 'package:hockey_union/events/new_event.dart'; // Import the AddNewEventPage
-import 'package:hockey_union/events/new_game.dart'; // Adjust the import path as needed
+import 'package:hockey_union/home/home_drawer.dart'; 
+import 'package:hockey_union/events/new_event.dart'; 
+import 'package:hockey_union/events/new_game.dart'; 
 
 class EventsPage extends StatelessWidget {
   const EventsPage({super.key});
@@ -24,91 +24,113 @@ class EventsPage extends StatelessWidget {
           child: SizedBox(
             height: 30,
             child: Image.asset(
-              'assets/images/NHU.png', // Replace with your actual logo path
+              'assets/images/NHU.png', 
               fit: BoxFit.contain,
             ),
           ),
         ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(50),
-          child: Container(
-            height: 50.0,
-            color: Colors.blue[900], // Match the bar's background color
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center, // Center the content
-              children: [
-                const Text(
-                  'Dunes', // Current league (can be dynamic)
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-          ),
-        ),
         actions: const [
-          SizedBox(width: 56), // To offset the leading icon if title is centered
+          Padding(
+            padding: EdgeInsets.only(right: 8.0), 
+            child: Icon(Icons.notifications), 
+          ),
         ],
       ),
-      drawer: const HomeDrawer(), // Add the HomeDrawer here
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              const Icon(
-                Icons.calendar_today,
-                size: 60.0,
-                color: Colors.grey,
+      drawer: const HomeDrawer(), 
+      body: SingleChildScrollView( 
+        child: Column(
+          children: <Widget>[
+            // Large Image Card
+            Card(
+              margin: const EdgeInsets.all(16.0),
+              clipBehavior: Clip.antiAlias, 
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10.0), 
               ),
-              const SizedBox(height: 16.0),
-              const Text(
-                'Add Events',
-                style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16.0),
-              const Text(
-                'Stay organized with all upcoming games and events. Use the buttons below to schedule new matches or other important team activities.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
-              ),
-              const SizedBox(height: 32.0),
-              SizedBox(
+              child: Image.asset(
+                'assets/images/hockey-female.png', 
+                fit: BoxFit.cover,
                 width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const AddGamePage()),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue[900],
-                    padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  ),
-                  child: const Text('ADD GAME', style: TextStyle(color: Colors.white)),
-                ),
+                height: 450, 
               ),
-              const SizedBox(height: 16.0),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const AddNewEventPage()),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue[900],
-                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+            ),
+            
+            // Text Content
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 16.0),
+              child: Column(
+                children: const <Widget>[
+                  Text(
+                    'Organize Your Next Game',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 22.0,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
                   ),
-                  child: const Text('ADD EVENT', style: TextStyle(color: Colors.white)),
-                ),
+                  SizedBox(height: 12.0),
+                  Text(
+                    'From casual scrimmages to competitive matches, set up every event with ease.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16.0,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+
+            // Buttons
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: <Widget>[
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const AddNewEventPage()),
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.blue), // Blue border
+                        padding: const EdgeInsets.symmetric(vertical: 14.0),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                      ),
+                      child: const Text(
+                        'ADD EVENTS',
+                        style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16.0), // Space between buttons
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const AddGamePage()),
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.blue), // Blue border
+                        padding: const EdgeInsets.symmetric(vertical: 14.0),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                      ),
+                      child: const Text(
+                        'ADD GAME',
+                        style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

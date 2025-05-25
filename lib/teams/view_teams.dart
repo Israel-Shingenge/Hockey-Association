@@ -16,7 +16,7 @@ class TeamSelectionPage extends StatefulWidget {
 class _TeamSelectionPageState extends State<TeamSelectionPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   List<DocumentSnapshot> _userTeams = [];
-  Map<String, File?> _localLogos = {};
+  final Map<String, File?> _localLogos = {};
 
   @override
   void initState() {

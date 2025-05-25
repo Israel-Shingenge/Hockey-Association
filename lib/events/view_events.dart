@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:hockey_union/events/event_description.dart';
 import 'package:hockey_union/home/home_drawer.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
@@ -13,11 +14,10 @@ class EventDetailPage extends StatefulWidget {
 class _EventDetailPageState extends State<EventDetailPage> {
   bool _showRegistrationPopup = false;
   Map<String, dynamic>? selectedEvent;
-  String _currentView = 'all'; // 'all' or 'my'
+  String _currentView = 'all';
 
-// IMPORTANT: For a real app, get this from Firebase Auth (e.g., FirebaseAuth.instance.currentUser?.uid)
-  final String userId = 'CURRENT_USER_ID'; // Replace with actual user ID
-  final String userEmail = 'user@example.com'; // Replace with actual user email
+  final String userId = 'CURRENT_USER_ID';
+  final String userEmail = 'user@example.com';
 
   void _toggleRegistrationPopup(Map<String, dynamic> event) {
     setState(() {
@@ -55,38 +55,29 @@ class _EventDetailPageState extends State<EventDetailPage> {
   }
 
   Future<void> _deleteEvent(String eventId) async {
-    // Show a confirmation dialog
     final bool confirmDelete = await showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text('Confirm Deletion'),
-              content: const Text('Are you sure you want to delete this event? This action cannot be undone.'),
-              actions: <Widget>[
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false), // User cancels
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(true), // User confirms
-                  style: TextButton.styleFrom(foregroundColor: Colors.red),
-                  child: const Text('Delete'),
-                ),
-              ],
-            );
-          },
-        ) ??
-        false; // Default to false if dialog is dismissed
-
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Deletion'),
+          content: const Text('Are you sure you want to delete this event? This action cannot be undone.'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    ) ?? false;
     if (confirmDelete) {
       try {
-        // Delete the event document from the 'Events' collection
         await FirebaseFirestore.instance.collection('Events').doc(eventId).delete();
-
-        // Optionally, also delete its subcollection (registration) if it exists
-        // Note: Firestore does not automatically delete subcollections when a document is deleted.
-        // You might need a Cloud Function for comprehensive subcollection deletion if they are large.
-        // For small subcollections like 'registration', you can iterate and delete:
         final registrationDocs = await FirebaseFirestore.instance
             .collection('Events')
             .doc(eventId)
@@ -97,8 +88,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
         }
 
         setState(() {
-          _showRegistrationPopup = false; // Close the popup if it was open
-          selectedEvent = null; // Clear the selected event
+          _showRegistrationPopup = false;
+          selectedEvent = null;
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -116,55 +107,69 @@ class _EventDetailPageState extends State<EventDetailPage> {
     final Timestamp timestamp = event['date'];
     final DateTime eventDate = timestamp.toDate();
 
-    return Card(
-      elevation: 2.0,
-      margin: const EdgeInsets.only(bottom: 16.0),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8.0),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8.0),
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(4.0),
+    return GestureDetector( // Wrap the Card with GestureDetector for tap functionality
+      onTap: () {
+        // Navigate to the EventTeamsPage, passing the event data
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => EventTeamsPage(event: event),
+          ),
+        );
+      },
+      child: Card(
+        elevation: 2.0,
+        margin: const EdgeInsets.only(bottom: 16.0),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8.0),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8.0),
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(4.0),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      DateFormat('d').format(eventDate),
+                      style: const TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      DateFormat('E').format(eventDate),
+                      style: const TextStyle(fontSize: 16.0),
+                    ),
+                  ],
+                ),
               ),
-              child: Column(
-                children: [
-                  Text(
-                    DateFormat('d').format(eventDate),
-                    style: const TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    DateFormat('E').format(eventDate),
-                    style: const TextStyle(fontSize: 16.0),
-                  ),
-                ],
+              const SizedBox(width: 16.0),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      DateFormat('HH:mm (zzz)').format(eventDate),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(event['nameOfEvent'] ?? 'Untitled'),
+                    Text(event['location'] ?? 'No location'),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 16.0),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    DateFormat('HH:mm (zzz)').format(eventDate),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Text(event['nameOfEvent'] ?? 'Untitled'),
-                  Text(event['location'] ?? 'No location'),
-                ],
+              IconButton(
+                icon: const Icon(Icons.info_outline),
+                // Removed direct popup toggle from here, as the card tap handles navigation
+                // If you still need a separate info button for a *different* popup, adjust this.
+                // For now, it will open the registration popup if you tap the icon directly.
+                onPressed: () => _toggleRegistrationPopup(event),
               ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.info_outline),
-              onPressed: () => _toggleRegistrationPopup(event),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -179,7 +184,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
         final events = snapshot.data!.docs.map((doc) {
           final data = doc.data() as Map<String, dynamic>;
-          data['id'] = doc.id; // Ensure the document ID is included
+          data['id'] = doc.id;
           return data;
         }).toList();
 
@@ -220,7 +225,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
             if (regDoc.exists) {
               final eventData = eventDoc.data()! as Map<String, dynamic>;
-              eventData['id'] = eventDoc.id; // Ensure the document ID is included
+              eventData['id'] = eventDoc.id;
               return eventData;
             }
             return null;
@@ -233,7 +238,6 @@ class _EventDetailPageState extends State<EventDetailPage> {
               return const Center(child: Text('Error loading registered events'));
             }
 
-            // Filter out nulls here
             final registeredEvents = regEventsSnapshot.data!.whereType<Map<String, dynamic>>().toList();
 
             if (registeredEvents.isEmpty) {
@@ -297,6 +301,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
       body: Stack(
         children: [
           _currentView == 'all' ? _buildAllEventsList() : _buildMyEventsList(),
+          // The registration popup is still here if the info icon is pressed
           if (_showRegistrationPopup && selectedEvent != null)
             Positioned.fill(
               child: GestureDetector(
@@ -305,7 +310,6 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   color: Colors.black.withOpacity(0.5),
                   child: Center(
                     child: GestureDetector(
-                      // Prevents closing popup when tapping inside the dialog
                       onTap: () {},
                       child: Container(
                         width: 300,
@@ -322,16 +326,15 @@ class _EventDetailPageState extends State<EventDetailPage> {
                             Text('Name: ${selectedEvent!['nameOfEvent'] ?? 'N/A'}'),
                             Text('Location: ${selectedEvent!['location'] ?? 'N/A'}'),
                             Text('Date: ${DateFormat('yyyy-MM-dd – kk:mm').format((selectedEvent!['date'] as Timestamp).toDate())}'),
-                            Text('Volunteers: ${selectedEvent!['volunteerAssignments'] ?? 'N/A'}'), // Corrected key to match 'volunteerAssignments'
-                            Text('Notes: ${selectedEvent!['notes'] ?? 'No notes'}'), // Added notes
-                            Text('Duration: ${selectedEvent!['duration'] ?? 'N/A'}'), // Added duration
+                            Text('Volunteers: ${selectedEvent!['volunteerAssignments'] ?? 'N/A'}'),
+                            Text('Notes: ${selectedEvent!['notes'] ?? 'No notes'}'),
+                            Text('Duration: ${selectedEvent!['duration'] ?? 'N/A'}'),
                             const SizedBox(height: 16),
                             ElevatedButton(
                               onPressed: () => _registerForEvent(selectedEvent!['id']),
                               child: const Text('Register for this event'),
                             ),
                             const SizedBox(height: 8),
-
                             ElevatedButton(
                               onPressed: () => _deleteEvent(selectedEvent!['id']),
                               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),

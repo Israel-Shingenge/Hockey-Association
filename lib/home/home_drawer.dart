@@ -167,6 +167,21 @@ class HomeDrawer extends StatelessWidget {
                   },
                   isSelected: currentRoute == '/contactUs',
                 ),
+                    _buildDrawerItem(
+                  context: context,
+                  icon: Icons.lightbulb,
+                  title: 'Discover',
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    if (currentRoute != '/discover') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const ContactUsPage()),
+                      );
+                    }
+                  },
+                  isSelected: currentRoute == '/discover',
+                ),
               ],
             ),
           ),

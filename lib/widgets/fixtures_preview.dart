@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore
-import 'package:hockey_union/standings/fixtures.dart';
+import 'package:hockey_union/standings/fixtures.dart'; // Make sure this path is correct for your FixturesPage
 import 'package:intl/intl.dart'; // For date and time formatting
 
 class FixturesPreviewCard extends StatelessWidget {
-  const FixturesPreviewCard({super.key});
+  const FixturesPreviewCard({super.key}); // Removed the 'fixtures' parameter
 
   @override
   Widget build(BuildContext context) {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.symmetric(vertical: 8), // Added margin
-      child: InkWell( // Makes the entire card tappable
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: InkWell(
         onTap: () {
           Navigator.push(
             context,
@@ -25,28 +25,18 @@ class FixturesPreviewCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Upcoming Fixtures',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  Icon(Icons.event_available, color: Colors.blue[900]), // Icon
-                ],
-              ),
-              const Divider(height: 20, thickness: 1), // Separator
+              // Removed 'Upcoming Fixtures' header and icon as HomePage provides it.
+              // The entire card is now tappable to navigate to all fixtures.
               StreamBuilder<QuerySnapshot>(
-                // Fetch up to 3 upcoming fixtures, ordered by timestamp
                 stream: FirebaseFirestore.instance
                     .collection('fixtures')
-                    .where('timestamp', isGreaterThanOrEqualTo: Timestamp.now()) // Only upcoming fixtures
-                    .orderBy('timestamp', descending: false) // Order chronologically
+                    .where('timestamp', isGreaterThanOrEqualTo: Timestamp.now())
+                    .orderBy('timestamp', descending: false)
                     .limit(3) // Limit to 3 for preview
                     .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
-                    print("Fixtures Stream Error: ${snapshot.error}"); // Log the error
+                    print("Fixtures Stream Error: ${snapshot.error}");
                     return const Text('Error loading fixtures.', style: TextStyle(color: Colors.red));
                   }
                   if (snapshot.connectionState == ConnectionState.waiting) {
@@ -64,31 +54,25 @@ class FixturesPreviewCard extends StatelessWidget {
                       final fixture = doc.data() as Map<String, dynamic>;
                       final team1Name = fixture['team1Name'] ?? 'Team 1';
                       final team2Name = fixture['team2Name'] ?? 'Team 2';
-                      final rawTimestamp = fixture['timestamp']; // Get the raw timestamp
+                      final team1Logo = fixture['team1Logo'] ?? 'assets/images/placeholder_team_logo.png'; // Placeholder
+                      final team2Logo = fixture['team2Logo'] ?? 'assets/images/placeholder_team_logo.png'; // Placeholder
+                      final rawTimestamp = fixture['timestamp'];
 
                       DateTime fixtureDateTime;
-                      String formattedDate = 'N/A';
-                      String formattedTime = 'N/A';
 
                       if (rawTimestamp is Timestamp) {
-                        fixtureDateTime = rawTimestamp.toDate(); // Convert Firestore Timestamp to Dart DateTime
+                        fixtureDateTime = rawTimestamp.toDate();
                         final now = DateTime.now();
                         final today = DateTime(now.year, now.month, now.day);
                         final tomorrow = DateTime(now.year, now.month, now.day + 1);
                         final fixtureDateOnly = DateTime(fixtureDateTime.year, fixtureDateTime.month, fixtureDateTime.day);
 
                         if (fixtureDateOnly == today) {
-                          formattedDate = 'Today';
                         } else if (fixtureDateOnly == tomorrow) {
-                          formattedDate = 'Tomorrow';
                         } else {
-                          formattedDate = DateFormat('MMM d, y').format(fixtureDateTime);
                         }
-                        formattedTime = DateFormat('hh:mm a').format(fixtureDateTime); // e.g., 08:00 PM
-
                       } else {
-                        // Fallback if timestamp is not a Timestamp (e.g., old string format)
-                        // This part might not be needed if all your data is correct.
+                        // Fallback if timestamp is not a Timestamp
                         final dateString = fixture['date'] ?? '';
                         final timeString = fixture['time'] ?? '';
                         try {
@@ -99,35 +83,50 @@ class FixturesPreviewCard extends StatelessWidget {
                            final fixtureDateOnly = DateTime(fixtureDateTime.year, fixtureDateTime.month, fixtureDateTime.day);
 
                            if (fixtureDateOnly == today) {
-                             formattedDate = 'Today';
                            } else if (fixtureDateOnly == tomorrow) {
-                             formattedDate = 'Tomorrow';
                            } else {
-                             formattedDate = DateFormat('MMM d, y').format(fixtureDateTime);
                            }
-                           formattedTime = DateFormat('hh:mm a').format(fixtureDateTime);
-                        } catch (e) {
-                          print("Error parsing fixture date/time string: $e");
-                          formattedDate = fixture['date'] ?? 'N/A';
-                          formattedTime = fixture['time'] ?? 'N/A';
-                        }
+                         } catch (e) {
+                           print("Error parsing fixture date/time string: $e");
+                         }
                       }
 
                       return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6.0),
+                        padding: const EdgeInsets.symmetric(vertical: 8.0), // Increased vertical padding
                         child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween, // Distribute space
                           children: [
-                            Text(
-                              '$formattedDate, $formattedTime: ',
-                              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[700], fontSize: 14),
+                            // Team 1 Logo and Name
+                            Row(
+                              children: [
+                                Image.asset(team1Logo, height: 30, width: 30,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Icon(Icons.sports_hockey, size: 30, color: Colors.grey),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  team1Name,
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                  overflow: TextOverflow.ellipsis, // Prevent overflow
+                                ),
+                              ],
                             ),
-                            Expanded(
-                              child: Text(
-                                '$team1Name vs $team2Name',
-                                style: const TextStyle(fontSize: 14),
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                            // Score (Placeholder for now)
+                            const Text('vs', style: TextStyle(fontSize: 14, color: Colors.grey)),
+                            // Team 2 Logo and Name
+                            Row(
+                              children: [
+                                Text(
+                                  team2Name,
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                  overflow: TextOverflow.ellipsis, // Prevent overflow
+                                ),
+                                const SizedBox(width: 8),
+                                Image.asset(team2Logo, height: 30, width: 30,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Icon(Icons.sports_hockey, size: 30, color: Colors.grey),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -140,7 +139,7 @@ class FixturesPreviewCard extends StatelessWidget {
               Align(
                 alignment: Alignment.centerRight,
                 child: Text(
-                  'Tap to view all fixtures >',
+                  'Tap to view all fixtures >', // This text indicates the card is tappable
                   style: TextStyle(color: Colors.blue[700], fontSize: 13),
                 ),
               ),

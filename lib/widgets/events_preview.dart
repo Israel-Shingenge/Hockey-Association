@@ -4,7 +4,7 @@ import 'package:intl/intl.dart'; // For date formatting
 import 'package:hockey_union/events/view_events.dart'; // Assuming EventDetailPage is your full events listing page
 
 class EventsPreviewCard extends StatelessWidget {
-  const EventsPreviewCard({super.key});
+  const EventsPreviewCard({super.key}); // Removed the 'events' parameter
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +18,7 @@ class EventsPreviewCard extends StatelessWidget {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.symmetric(vertical: 8), // Added margin
+      margin: const EdgeInsets.symmetric(vertical: 8),
       child: InkWell( // Makes the entire card tappable
         onTap: () {
           Navigator.push(
@@ -32,17 +32,8 @@ class EventsPreviewCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Upcoming Events',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  Icon(Icons.calendar_today, color: Colors.blue[900]), // Icon
-                ],
-              ),
-              const Divider(height: 20, thickness: 1), // Separator
+              // Removed 'Upcoming Events' header and icon as HomePage provides it.
+              // The entire card is now tappable to navigate to all events.
               // Use StreamBuilder to fetch real-time event data
               StreamBuilder<QuerySnapshot>(
                 // Query for events where 'date' (your Timestamp field) is today or in the future
@@ -88,41 +79,71 @@ class EventsPreviewCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: snapshot.data!.docs.map((document) {
                       final data = document.data() as Map<String, dynamic>;
-                      // Use 'nameOfEvent' as per your JSON payload
                       final String eventName = data['nameOfEvent'] ?? 'No Name';
-                      // Use 'date' as per your JSON payload, which is a Timestamp
                       final Timestamp eventTimestamp = data['date'] as Timestamp;
                       final DateTime eventDate = eventTimestamp.toDate();
+                      final String? location = data['location']; // Assuming you have a 'location' field
+                      final String? imageUrl = data['imageUrl']; // Assuming you have an 'imageUrl' field
 
                       // Format the date for display
-                      final String formattedDate = DateFormat('MMM d, yyyy').format(eventDate);
-
-                      // You can add more fields here if you want to display them,
-                      // for example:
-                      // final String? location = data['location'];
-                      // final String? duration = data['duration'];
+                      final String formattedDate = DateFormat('MMM d, y').format(eventDate);
 
                       return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4.0),
-                        child: Column(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0), // Increased padding
+                        child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              eventName,
-                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-                              maxLines: 1, // Limit lines for preview
-                              overflow: TextOverflow.ellipsis, // Show ellipsis if text overflows
+                            // Event Image
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8.0),
+                              child: imageUrl != null && imageUrl.isNotEmpty
+                                  ? Image.asset( // Assuming image is an asset
+                                      imageUrl,
+                                      height: 60,
+                                      width: 60,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return Container( // Fallback if image not found
+                                          height: 60,
+                                          width: 60,
+                                          color: Colors.grey[300],
+                                          child: const Icon(Icons.event, color: Colors.grey),
+                                        );
+                                      },
+                                    )
+                                  : Container( // Fallback if imageUrl is null or empty
+                                      height: 60,
+                                      width: 60,
+                                      color: Colors.grey[300],
+                                      child: const Icon(Icons.event, color: Colors.grey),
+                                    ),
                             ),
-                            Text(
-                              formattedDate,
-                              style: const TextStyle(fontSize: 12, color: Colors.grey),
+                            const SizedBox(width: 12),
+                            // Event Details (Name, Date, Location)
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    eventName,
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    formattedDate,
+                                    style: const TextStyle(color: Colors.grey),
+                                  ),
+                                  if (location != null && location.isNotEmpty) // Display location if available
+                                    Text(
+                                      location,
+                                      style: const TextStyle(color: Colors.grey),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                ],
+                              ),
                             ),
-                            // Example of adding another field:
-                            // if (location != null)
-                            //   Text(
-                            //     'Location: $location',
-                            //     style: const TextStyle(fontSize: 11, color: Colors.grey),
-                            //   ),
                           ],
                         ),
                       );
@@ -134,7 +155,7 @@ class EventsPreviewCard extends StatelessWidget {
               Align(
                 alignment: Alignment.centerRight,
                 child: Text(
-                  'Tap to view all events >',
+                  'Tap to view all events >', // This text indicates the card is tappable
                   style: TextStyle(color: Colors.blue[700], fontSize: 13),
                 ),
               ),

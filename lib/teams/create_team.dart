@@ -31,19 +31,20 @@ class _CreateTeamPageState extends State<CreateTeamPage> {
       }
 
       try {
-        // Create the team document
+        
         final teamRef = await FirebaseFirestore.instance.collection('Teams').add({
           'clubName': _clubNameController.text.trim(),
           'clubLeague': _clubLeagueController.text.trim(),
-          'clubContactPerson': _clubContactPersonController.text.trim(),
+          'contactPerson': _clubContactPersonController.text.trim(),
           'email': _emailController.text.trim(),
           'phoneNumber': _phoneNumberController.text.trim(),
           'clubDescription': _clubDescriptionController.text.trim(),
           'uid': uid,
           'createdAt': FieldValue.serverTimestamp(),
+          'logoUrl': null, 
         });
 
-        // Add creator_info subcollection
+        
         await teamRef.collection('creatorInfo').doc('details').set({
           'createdByUid': uid,
           'createdAt': FieldValue.serverTimestamp(),
@@ -53,13 +54,24 @@ class _CreateTeamPageState extends State<CreateTeamPage> {
           const SnackBar(content: Text('Team created successfully')),
         );
 
-        Navigator.of(context).pop(); // Go back to the previous page
+        Navigator.of(context).pop(); 
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to create team: $e')),
         );
       }
     }
+  }
+
+  @override
+  void dispose() {
+    _clubNameController.dispose();
+    _clubLeagueController.dispose();
+    _clubContactPersonController.dispose();
+    _emailController.dispose();
+    _phoneNumberController.dispose();
+    _clubDescriptionController.dispose();
+    super.dispose();
   }
 
   @override
@@ -85,100 +97,156 @@ class _CreateTeamPageState extends State<CreateTeamPage> {
             ),
           ),
         ),
-        actions: const [SizedBox(width: 56)],
+        actions: const [
+          Padding(
+            padding: EdgeInsets.only(right: 8.0),
+            child: Icon(Icons.notifications),
+          ),
+        ],
       ),
       drawer: const HomeDrawer(),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              TextFormField(
-                controller: _clubNameController,
-                decoration: const InputDecoration(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                const SizedBox(height: 30.0),
+                const Center(
+                  child: Text(
+                    'Create Team',
+                    style: TextStyle(
+                      fontSize: 24.0,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 30.0),
+                
+                Container(
+                  height: 1.0,
+                  color: Colors.grey[300],
+                  margin: const EdgeInsets.symmetric(horizontal: 0.0),
+                ),
+                const SizedBox(height: 30.0),
+                
+                _buildOutlineTextField(
+                  controller: _clubNameController,
                   labelText: 'Club Name',
-                  border: OutlineInputBorder(),
+                  validator: (value) =>
+                      value == null || value.isEmpty ? 'Please enter club name' : null,
                 ),
-                validator: (value) =>
-                    value == null || value.isEmpty ? 'Please enter club name' : null,
-              ),
-              const SizedBox(height: 16.0),
-              TextFormField(
-                controller: _clubLeagueController,
-                decoration: const InputDecoration(
+                const SizedBox(height: 16.0),
+                _buildOutlineTextField(
+                  controller: _clubLeagueController,
                   labelText: 'Club League',
-                  border: OutlineInputBorder(),
+                  validator: (value) =>
+                      value == null || value.isEmpty ? 'Please enter club league' : null,
                 ),
-                validator: (value) =>
-                    value == null || value.isEmpty ? 'Please enter club league' : null,
-              ),
-              const SizedBox(height: 16.0),
-              TextFormField(
-                controller: _clubContactPersonController,
-                decoration: const InputDecoration(
+                const SizedBox(height: 16.0),
+                _buildOutlineTextField(
+                  controller: _clubContactPersonController,
                   labelText: 'Club Contact Person',
-                  border: OutlineInputBorder(),
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'Please enter club contact person'
+                      : null,
                 ),
-                validator: (value) => value == null || value.isEmpty
-                    ? 'Please enter club contact person'
-                    : null,
-              ),
-              const SizedBox(height: 16.0),
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(
+                const SizedBox(height: 16.0),
+                _buildOutlineTextField(
+                  controller: _emailController,
                   labelText: 'Email',
-                  border: OutlineInputBorder(),
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter email';
+                    }
+                    if (!value.contains('@')) {
+                      return 'Please enter a valid email';
+                    }
+                    return null;
+                  },
                 ),
-                keyboardType: TextInputType.emailAddress,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter email';
-                  }
-                  if (!value.contains('@')) {
-                    return 'Please enter a valid email';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16.0),
-              TextFormField(
-                controller: _phoneNumberController,
-                decoration: const InputDecoration(
+                const SizedBox(height: 16.0),
+                _buildOutlineTextField(
+                  controller: _phoneNumberController,
                   labelText: 'Phone Number',
-                  border: OutlineInputBorder(),
+                  keyboardType: TextInputType.phone,
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'Please enter phone number'
+                      : null,
                 ),
-                keyboardType: TextInputType.phone,
-                validator: (value) => value == null || value.isEmpty
-                    ? 'Please enter phone number'
-                    : null,
-              ),
-              const SizedBox(height: 16.0),
-              TextFormField(
-                controller: _clubDescriptionController,
-                decoration: const InputDecoration(
+                const SizedBox(height: 16.0),
+                _buildOutlineTextField(
+                  controller: _clubDescriptionController,
                   labelText: 'Club description',
-                  border: OutlineInputBorder(),
+                  maxLines: 3,
+                  validator: (value) =>
+                      value == null || value.isEmpty ? 'Please enter club description' : null,
                 ),
-                maxLines: 3,
-                validator: (value) =>
-                    value == null || value.isEmpty ? 'Please enter club description' : null,
-              ),
-              const SizedBox(height: 24.0),
-              ElevatedButton(
-                onPressed: _saveTeamToFirestore,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue[900],
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                const SizedBox(height: 40.0),
+                SizedBox(
+                  height: 50.0,
+                  child: ElevatedButton( 
+                    onPressed: _saveTeamToFirestore,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color.fromARGB(255, 8, 67, 116), 
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14.0),
+                    ),
+                    child: const Text(
+                      'SAVE',
+                      style: TextStyle(
+                        color: Colors.white, 
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16.0,
+                      ),
+                    ),
+                  ),
                 ),
-                child: const Text('SAVE', style: TextStyle(color: Colors.white)),
-              ),
-            ],
+                const SizedBox(height: 20.0),
+              ],
+            ),
           ),
         ),
       ),
+    );
+  }
+
+  
+  Widget _buildOutlineTextField({
+    required TextEditingController controller,
+    required String labelText,
+    TextInputType keyboardType = TextInputType.text,
+    int? maxLines = 1,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: labelText,
+        floatingLabelBehavior: FloatingLabelBehavior.never,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8.0),
+          borderSide: BorderSide(color: Colors.grey[400]!),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8.0),
+          borderSide: BorderSide(color: Colors.grey[400]!),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8.0),
+          borderSide: BorderSide(color: Theme.of(context).primaryColor),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      ),
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+      validator: validator,
     );
   }
 }

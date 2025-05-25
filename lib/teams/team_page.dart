@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:hockey_union/announcements/view_announcements.dart';
 import 'package:hockey_union/home/home_drawer.dart';
-import 'package:hockey_union/profile/player_profile.dart'; // Make sure this path is correct
+import 'package:hockey_union/profile/player_profile.dart';
 import 'package:hockey_union/teams/add_player.dart';
-import 'package:hockey_union/teams/view_teams.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Import SharedPreferences
+import 'dart:io'; // Import dart:io for File
 
 class TeamPage extends StatefulWidget {
   const TeamPage({super.key});
@@ -15,8 +17,31 @@ class TeamPage extends StatefulWidget {
 class _TeamPageState extends State<TeamPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  String _sortBy = 'firstName'; // Default sort by 'firstName'
-  bool _sortDescending = false; // Default sort in ascending order
+  String _sortBy = 'firstName';
+  bool _sortDescending = false;
+
+  // Cache for profile image paths to avoid repeated SharedPreferences reads
+  final Map<String, String?> _profileImageCache = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAllPlayerImages(); // Load images for all players when the page initializes
+  }
+
+  // Method to load all player images into the cache
+  Future<void> _loadAllPlayerImages() async {
+    final prefs = await SharedPreferences.getInstance();
+    FirebaseFirestore.instance.collection('Player').get().then((snapshot) {
+      if (mounted) {
+        setState(() {
+          for (var doc in snapshot.docs) {
+            _profileImageCache[doc.id] = prefs.getString('profile_image_${doc.id}');
+          }
+        });
+      }
+    });
+  }
 
   void _showAddPlayerPage() {
     Navigator.push(
@@ -99,86 +124,66 @@ class _TeamPageState extends State<TeamPage> {
         title: Center(
           child: Image.asset('assets/images/NHU.png', height: 30),
         ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(50),
-          child: GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                PageRouteBuilder(
-                  pageBuilder: (context, animation, secondaryAnimation) =>
-                      const TeamSelectionPage(),
-                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                    const begin = Offset(0.0, 1.0);
-                    const end = Offset.zero;
-                    const curve = Curves.easeInOut;
-                    final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-                    return SlideTransition(position: animation.drive(tween), child: child);
-                  },
-                ),
-              );
-            },
-            child: Container(
-              height: 50.0,
-              color: Colors.blue[900],
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: IconButton(
+              icon: const Icon(Icons.notifications, color: Colors.black87),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AnnouncementPage()),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+      drawer: const HomeDrawer(),
+      body: Column(
+        children: [
+          Card(
+            margin: const EdgeInsets.all(16.0),
+            color: Colors.white,
+            elevation: 2.0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('Teams',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  SizedBox(width: 8.0),
-                  Icon(Icons.arrow_drop_down, color: Colors.white),
+                  const Text(
+                    'Add Your Team',
+                    style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10.0),
+                  const Icon(Icons.people_alt, size: 40.0, color: Colors.grey),
+                  const SizedBox(height: 10.0),
+                  const Text(
+                    'Register your team members and invite\nthem to join you on NHA',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 14.0, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 20.0),
+                  ElevatedButton(
+                    onPressed: _showAddPlayerPage,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color.fromARGB(255, 11, 71, 182),
+                      padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 15.0),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                    ),
+                    child: const Text(
+                      'ADD TEAM MEMBER',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
-        ),
-        actions: const [SizedBox(width: 56)],
-      ),
-      drawer: const HomeDrawer(),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Add New Player Section
-            Container(
-              padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8.0),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.2),
-                    spreadRadius: 1,
-                    blurRadius: 3,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  const Text(
-                    'Add New Player',
-                    style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16.0),
-                  ElevatedButton(
-                    onPressed: _showAddPlayerPage,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[900],
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
-                    ),
-                    child: const Text('ADD TEAM MEMBER', style: TextStyle(color: Colors.white)),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24.0),
-
-            // Dynamic Player List Section
-            StreamBuilder<QuerySnapshot>(
+          const SizedBox(height: 16.0),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('Player')
                   .orderBy(_sortBy, descending: _sortDescending)
@@ -193,106 +198,123 @@ class _TeamPageState extends State<TeamPage> {
                 }
 
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text("No players found."));
+                  return Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Players (0)',
+                              style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+                            ),
+                            _buildSortMenu(),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8.0),
+                      const Expanded(child: Center(child: Text("No players found."))),
+                    ],
+                  );
                 }
 
                 final players = snapshot.data!.docs;
 
                 return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Players (${players.length})',
-                          style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
-                        ),
-                        _buildSortMenu(),
-                      ],
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Players (${players.length})',
+                            style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+                          ),
+                          _buildSortMenu(),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 8.0),
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: players.length,
-                      itemBuilder: (context, index) {
-                        final document = players[index]; // Get the document snapshot
-                        final data = document.data()! as Map<String, dynamic>;
-                        final String docId = document.id; // ⭐ Get the document ID here!
-                        final fullName = '${data['firstName'] ?? ''} ${data['lastName'] ?? ''}';
+                    Expanded(
+                      child: ListView.separated(
+                        itemCount: players.length,
+                        itemBuilder: (context, index) {
+                          final document = players[index];
+                          final data = document.data()! as Map<String, dynamic>;
+                          final String docId = document.id;
+                          final fullName = '${data['firstName'] ?? ''} ${data['lastName'] ?? ''}';
 
-                        // ⭐ IMPORTANT: Check if document ID is empty before proceeding
-                        if (docId.isEmpty) {
-                          print('Warning: Document ID is empty for a player. Skipping this entry.');
-                          return const SizedBox.shrink(); // Don't build a list item for invalid ID
-                        }
+                          if (docId.isEmpty) {
+                            debugPrint('Warning: Document ID is empty for a player. Skipping this entry.');
+                            return const SizedBox.shrink();
+                          }
 
-                        // ⭐ Pass docId and the full data map
-                        return _buildPlayerListItem(docId, fullName, data);
-                      },
+                          // Retrieve the image path from the cache (or SharedPreferences)
+                          final String? profileImagePath = _profileImageCache[docId];
+
+                          return _buildPlayerListItem(docId, fullName, data, profileImagePath);
+                        },
+                        separatorBuilder: (context, index) => const Divider(
+                          height: 1,
+                          thickness: 1,
+                          color: Colors.grey,
+                          indent: 16,
+                          endIndent: 16,
+                        ),
+                      ),
                     ),
                   ],
                 );
               },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  // Helper widget to build individual player list items
-  // Now accepts playerId (document.id) and playerData map
-  Widget _buildPlayerListItem(String playerId, String playerName, Map<String, dynamic> playerData) {
+  Widget _buildPlayerListItem(String playerId, String playerName, Map<String, dynamic> playerData, String? profileImagePath) {
     return InkWell(
-      onTap: () {
-        // ⭐ Pass the document ID and player data to PlayerProfilePage
-        Navigator.push(
+      onTap: () async { // Make onTap async to await updates if coming back from profile page
+        await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => PlayerProfilePage(
-              playerId: playerId, // Pass the unique document ID
-              playerData: playerData, playerName: '', // Pass the entire player data map
+              playerId: playerId,
+              playerData: playerData,
+              playerName: playerName,
             ),
           ),
         );
+        // After returning from PlayerProfilePage, reload images to ensure the latest is displayed
+        _loadAllPlayerImages();
       },
-      child: Card(
-        margin: const EdgeInsets.symmetric(vertical: 4.0),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-          child: Row(
-            children: [
-              const Icon(Icons.person),
-              const SizedBox(width: 16.0),
-              Expanded(
-                child: Text(
-                  playerName,
-                  style: const TextStyle(fontSize: 16.0),
-                ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+        color: Colors.white,
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 24,
+              backgroundColor: Colors.grey[200],
+              backgroundImage: profileImagePath != null
+                  ? FileImage(File(profileImagePath)) as ImageProvider<Object>? // Use FileImage for local paths
+                  : null,
+              child: profileImagePath == null
+                  ? Icon(Icons.person, color: Colors.grey[700], size: 30)
+                  : null,
+            ),
+            const SizedBox(width: 16.0),
+            Expanded(
+              child: Text(
+                playerName,
+                style: const TextStyle(fontSize: 16.0, color: Colors.black87),
               ),
-              // Display jersey number if available
-              if (playerData.containsKey('jerseyNumber'))
-                Padding(
-                  padding: const EdgeInsets.only(left: 8.0),
-                  child: Text(
-                    '#${playerData['jerseyNumber'].toString()}',
-                    style: const TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold, color: Colors.blueGrey),
-                  ),
-                ),
-              // Display position if available
-              if (playerData.containsKey('position'))
-                Padding(
-                  padding: const EdgeInsets.only(left: 8.0),
-                  child: Text(
-                    '(${playerData['position']})',
-                    style: const TextStyle(fontSize: 14.0, fontStyle: FontStyle.italic, color: Colors.grey),
-                  ),
-                ),
-              const Icon(Icons.arrow_forward_ios, size: 16.0),
-            ],
-          ),
+            ),
+            const Icon(Icons.arrow_forward_ios, size: 16.0, color: Colors.grey),
+          ],
         ),
       ),
     );

@@ -1,7 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class PlayerProfilePage extends StatefulWidget {
   final String playerId;
@@ -10,7 +15,8 @@ class PlayerProfilePage extends StatefulWidget {
   const PlayerProfilePage({
     super.key,
     required this.playerId,
-    required this.playerData, required String playerName,
+    required this.playerData,
+    required String playerName,
   });
 
   @override
@@ -18,33 +24,97 @@ class PlayerProfilePage extends StatefulWidget {
 }
 
 class _PlayerProfilePageState extends State<PlayerProfilePage> {
-  // Make _playerDocRef nullable or handle its late initialization carefully
-  DocumentReference? _playerDocRef; // Changed to nullable
-  bool _isPlayerIdValid = true; // New state variable to track validity
+  DocumentReference? _playerDocRef;
+  bool _isPlayerIdValid = true;
+  String? _profileImagePath; // State variable to store the image path
 
   @override
   void initState() {
     super.initState();
-    // ⭐ Add this debug print to see what playerId is being received
+
     debugPrint('PlayerProfilePage: Received playerId: "${widget.playerId}"');
 
     if (widget.playerId.isEmpty) {
       _isPlayerIdValid = false;
-      // Schedule a message to be shown after the build cycle
+
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) { // Ensure widget is still in tree
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Error: Player profile cannot be loaded due to missing ID.')),
+            const SnackBar(
+                content: Text('Error: Player profile cannot be loaded due to missing ID.')),
           );
         }
       });
       debugPrint('PlayerProfilePage: Detected empty playerId. Will not initialize Firestore query.');
     } else {
       _playerDocRef = FirebaseFirestore.instance.collection('Player').doc(widget.playerId);
+      _loadImage(); // Load the profile image when the page initializes
     }
   }
 
-  // --- Helper function to display data or "Add" button ---
+  // Method to load the saved image path from SharedPreferences
+  Future<void> _loadImage() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _profileImagePath = prefs.getString('profile_image_${widget.playerId}');
+    });
+  }
+
+  // Method to pick an image, save it locally, and store its path
+  Future<void> _pickAndSaveImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      final appDir = await getApplicationDocumentsDirectory();
+      final fileName = '${widget.playerId}_profile.png'; // Consistent filename per player
+      final localImage = await File(pickedFile.path).copy('${appDir.path}/$fileName');
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('profile_image_${widget.playerId}', localImage.path);
+
+      setState(() {
+        _profileImagePath = localImage.path;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile picture updated!')),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No image selected.')),
+        );
+      }
+    }
+  }
+
+  // Method to remove the profile picture
+  Future<void> _removeProfileImage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? imagePath = prefs.getString('profile_image_${widget.playerId}');
+
+    if (imagePath != null) {
+      final File imageFile = File(imagePath);
+      if (await imageFile.exists()) {
+        await imageFile.delete(); // Delete the file from local storage
+      }
+      await prefs.remove('profile_image_${widget.playerId}'); // Remove path from SharedPreferences
+
+      setState(() {
+        _profileImagePath = null; // Clear the image path
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile picture removed!')),
+        );
+      }
+    }
+  }
+
   Widget _buildProfileTile({
     required String title,
     String? value,
@@ -53,9 +123,8 @@ class _PlayerProfilePageState extends State<PlayerProfilePage> {
   }) {
     return ListTile(
       title: Text(title),
-      subtitle: value != null && value.isNotEmpty
-          ? Text(value, style: const TextStyle(fontWeight: FontWeight.bold))
-          : null,
+      subtitle:
+          value != null && value.isNotEmpty ? Text(value, style: const TextStyle(fontWeight: FontWeight.bold)) : null,
       trailing: onAddEdit != null
           ? TextButton.icon(
               onPressed: onAddEdit,
@@ -66,9 +135,7 @@ class _PlayerProfilePageState extends State<PlayerProfilePage> {
     );
   }
 
-  // --- Dialog for Date of Birth ---
   Future<void> _editDateOfBirth(BuildContext context, DateTime? currentDob) async {
-    // Only proceed if _playerDocRef is initialized and valid
     if (!_isPlayerIdValid || _playerDocRef == null) {
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Cannot edit: Invalid player profile.')));
@@ -83,8 +150,8 @@ class _PlayerProfilePageState extends State<PlayerProfilePage> {
     );
 
     if (pickedDate != null) {
-      await _playerDocRef!.update({ // Use ! because we checked for null
-        'dateOfBirth': Timestamp.fromDate(pickedDate), // Store as Timestamp
+      await _playerDocRef!.update({
+        'dateOfBirth': Timestamp.fromDate(pickedDate),
       }).then((_) {
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Date of Birth updated!')));
@@ -95,9 +162,7 @@ class _PlayerProfilePageState extends State<PlayerProfilePage> {
     }
   }
 
-  // --- Dialog for Gender ---
   Future<void> _editGender(BuildContext context, String? currentGender) async {
-    // Only proceed if _playerDocRef is initialized and valid
     if (!_isPlayerIdValid || _playerDocRef == null) {
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Cannot edit: Invalid player profile.')));
@@ -143,7 +208,7 @@ class _PlayerProfilePageState extends State<PlayerProfilePage> {
     );
 
     if (selectedGender != null && selectedGender != currentGender) {
-      await _playerDocRef!.update({ // Use ! because we checked for null
+      await _playerDocRef!.update({
         'gender': selectedGender,
       }).then((_) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -155,9 +220,7 @@ class _PlayerProfilePageState extends State<PlayerProfilePage> {
     }
   }
 
-  // --- Add to Contacts Functionality (using flutter_contacts) ---
   Future<void> _addToContacts(Map<String, dynamic> playerData) async {
-    // Request contacts permission using flutter_contacts
     bool granted = await FlutterContacts.requestPermission();
 
     if (granted) {
@@ -188,7 +251,7 @@ class _PlayerProfilePageState extends State<PlayerProfilePage> {
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('$firstName $lastName added to contacts!')));
       } catch (e) {
-        debugPrint('Error adding contact: $e'); // Use debugPrint
+        debugPrint('Error adding contact: $e');
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Failed to add contact: $e')));
       }
@@ -200,7 +263,6 @@ class _PlayerProfilePageState extends State<PlayerProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    // ⭐ If playerId was invalid, display an error screen instead of crashing
     if (!_isPlayerIdValid) {
       return Scaffold(
         appBar: AppBar(
@@ -236,7 +298,6 @@ class _PlayerProfilePageState extends State<PlayerProfilePage> {
       );
     }
 
-    // ⭐ Normal build logic proceeds only if playerId is valid
     return Scaffold(
       appBar: AppBar(
         title: const Text('Player Profile'),
@@ -246,15 +307,13 @@ class _PlayerProfilePageState extends State<PlayerProfilePage> {
         ),
       ),
       body: StreamBuilder<DocumentSnapshot>(
-        // Use the nullable _playerDocRef, which is initialized only if valid
-        stream: _playerDocRef!.snapshots(), // Use ! here as we've checked _isPlayerIdValid
+        stream: _playerDocRef!.snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
           if (snapshot.hasError) {
-            // Include snapshot.error for better debugging
             return Center(child: Text('Error loading player data: ${snapshot.error}'));
           }
 
@@ -271,7 +330,7 @@ class _PlayerProfilePageState extends State<PlayerProfilePage> {
           final String position = playerData['position'] ?? 'N/A';
           final Timestamp? dobTimestamp = playerData['dateOfBirth'] as Timestamp?;
           final DateTime? dob = dobTimestamp?.toDate();
-          final String formattedDob = dob != null ? DateFormat('MMM d, yyyy').format(dob) : '';
+          final String formattedDob = dob != null ? DateFormat('MMM d,yyyy').format(dob) : '';
           final String gender = playerData['gender'] ?? '';
           final String email = playerData['email'] ?? 'N/A';
           final String phoneNumber = playerData['phoneNumber'] ?? 'N/A';
@@ -281,15 +340,69 @@ class _PlayerProfilePageState extends State<PlayerProfilePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
+                // Profile Picture and Player Info Container
                 Container(
-                  color: Colors.blue[900],
+                  color: Colors.blue[900], // Keep the blue background
                   padding: const EdgeInsets.all(16.0),
-                  child: Row(
+                  height: 160.0,
+                  child: Row( // Direct Row
                     children: <Widget>[
-                      const Icon(Icons.person, size: 40.0, color: Colors.white),
+                      GestureDetector(
+                        onTap: () {
+                          // Show options to pick or remove image as a dialog
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext dialogContext) { // Use a different context name to avoid conflict
+                              return AlertDialog(
+                                title: const Text('Profile Picture'),
+                                content: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    ListTile(
+                                      leading: const Icon(Icons.photo_library),
+                                      title: const Text('Choose Photo'),
+                                      onTap: () {
+                                        _pickAndSaveImage();
+                                        Navigator.of(dialogContext).pop(); // Pop the dialog
+                                      },
+                                    ),
+                                    if (_profileImagePath != null) // Show remove option only if image exists
+                                      ListTile(
+                                        leading: const Icon(Icons.delete),
+                                        title: const Text('Remove Photo'),
+                                        onTap: () {
+                                          _removeProfileImage();
+                                          Navigator.of(dialogContext).pop(); // Pop the dialog
+                                        },
+                                      ),
+                                  ],
+                                ),
+                              );
+                            },
+                          );
+                        },
+                        child: CircleAvatar(
+                          radius: 40.0,
+                          // Conditionally set background color only when no image
+                          backgroundColor: _profileImagePath == null
+                              ? Colors.white.withOpacity(0.2)
+                              : Colors.transparent, // Make transparent when image is present
+                          child: _profileImagePath == null
+                              ? const Icon(Icons.person, size: 40.0, color: Colors.white)
+                              : ClipOval(
+                                  child: Image.file(
+                                    File(_profileImagePath!),
+                                    fit: BoxFit.cover,
+                                    width: 80,
+                                    height: 80,
+                                  ),
+                                ),
+                        ),
+                      ),
                       const SizedBox(width: 16.0),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
                             fullName,
@@ -345,19 +458,23 @@ class _PlayerProfilePageState extends State<PlayerProfilePage> {
                 ),
                 const SizedBox(height: 16.0),
 
-                Center(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _addToContacts(playerData),
-                    icon: const Icon(Icons.contact_phone),
-                    label: const Text('Add to Phone Contacts'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[700],
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
-                ),
+               
+               Center(
+                  child: SizedBox( // Wrap with SizedBox
+                    width: double.infinity, // Make it take full width
+                      child: ElevatedButton.icon(
+                      onPressed: () => _addToContacts(playerData),
+                      icon: const Icon(Icons.contact_phone),
+                      label: const Text('Add to Phone Contacts'),
+                      style: ElevatedButton.styleFrom(
+                     backgroundColor: Colors.blue[700],
+                    foregroundColor: Colors.white,
+                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+           ),
+         ),
                 const SizedBox(height: 20.0),
 
                 const Text(

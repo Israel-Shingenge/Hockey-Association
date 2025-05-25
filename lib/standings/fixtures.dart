@@ -251,7 +251,7 @@ class _FixturesPageState extends State<FixturesPage> {
     );
   }
 
-  // Helper widget to build the date selection buttons in the app bar.
+  // Helper widget to build the date selection buttons.
   // [text] is the display text for the button (e.g., "Today", "Upcoming").
   // [mode] defines the filtering behavior ('day', 'upcoming', 'past').
   // [date] is the DateTime object used as a reference point for the filter.
@@ -268,8 +268,8 @@ class _FixturesPageState extends State<FixturesPage> {
         });
       },
       style: OutlinedButton.styleFrom(
-        backgroundColor: isSelected ? Colors.white : Colors.blue[800],
-        side: BorderSide(color: isSelected ? Colors.white : Colors.blue.shade600),
+        backgroundColor: isSelected ? Colors.blue[700] : Colors.transparent, // Filled when selected, transparent when not
+        side: BorderSide(color: isSelected ? Colors.transparent : Colors.blue.shade700), // No border when selected, blue border otherwise
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8.0),
         ),
@@ -278,7 +278,7 @@ class _FixturesPageState extends State<FixturesPage> {
       child: Text(
         text,
         style: TextStyle(
-          color: isSelected ? Colors.blue[900] : Colors.white,
+          color: isSelected ? Colors.white : Colors.blue[700], // White text when selected, blue otherwise
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
       ),
@@ -315,7 +315,7 @@ class _FixturesPageState extends State<FixturesPage> {
 
     return Scaffold(
       appBar: AppBar(
-        // The leading icon (drawer) is handled by the HomeDrawer.
+        // Leading drawer icon (remains)
         leading: Builder(
           builder: (BuildContext context) {
             return IconButton(
@@ -330,10 +330,26 @@ class _FixturesPageState extends State<FixturesPage> {
         centerTitle: true,
         backgroundColor: Colors.blue[900],
         elevation: 0, // Flat app bar look.
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60.0), // Increased height for padding.
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        // Actions: Back button moved to actions
+        actions: [
+          // Back Button
+          IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () {
+              Navigator.pop(context); // Navigates back to the previous screen
+            },
+          ),
+          const SizedBox(width: 8), // Padding on the right
+        ],
+        // Removed the 'bottom' property from AppBar as buttons are moved to body
+      ),
+      drawer: const HomeDrawer(), // Your custom drawer.
+      body: Column( // Use Column to stack buttons and StreamBuilder content
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Moved the filter buttons here, outside the AppBar
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0), // Sufficient padding
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -344,186 +360,185 @@ class _FixturesPageState extends State<FixturesPage> {
               ],
             ),
           ),
-        ),
-      ),
-      drawer: const HomeDrawer(), // Your custom drawer.
-      body: StreamBuilder<QuerySnapshot>(
-        stream: firestoreQuery.snapshots(),
-        builder: (context, snapshot) {
-          // Handle potential Firestore errors.
-          if (snapshot.hasError) {
-            print("Firestore Error: ${snapshot.error}"); // Log the error for debugging.
-            return Center(
-                child: Text('Error loading data: ${snapshot.error}', style: const TextStyle(color: Colors.red, fontSize: 16)));
-          }
-          // Show a loading indicator while data is being fetched.
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent)));
-          }
-          // If no data is available from Firestore at all.
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            String emptyMessage;
-            if (_filterMode == 'upcoming') {
-              emptyMessage = 'No upcoming fixtures scheduled.';
-            } else if (_filterMode == 'past') {
-              emptyMessage = 'No past fixtures found.';
-            } else {
-              emptyMessage = 'No fixtures for today.';
-            }
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.event_note, size: 80, color: Colors.grey),
-                  const SizedBox(height: 10),
-                  Text(emptyMessage, style: const TextStyle(color: Colors.grey, fontSize: 18, fontStyle: FontStyle.italic)),
-                  const Text('Tap the "+" button to add one!', style: TextStyle(color: Colors.grey, fontSize: 14)),
-                ],
-              ),
-            );
-          }
+          const SizedBox(height: 16), // Spacing between buttons and content
 
-          // In this revised logic, the Firestore query itself handles the primary filtering.
-          // The client-side filtering becomes less critical here unless you need more complex logic
-          // that cannot be done directly in a Firestore query (e.g., OR conditions).
-          // For 'upcoming' and 'past', the query already gives us the desired range.
-          // For 'day', the query gives us the exact day.
-          final List<DocumentSnapshot> displayFixtures = snapshot.data!.docs;
-
-          // Display the filtered list of fixtures.
-          return ListView.builder(
-            padding: const EdgeInsets.all(16.0),
-            itemCount: displayFixtures.length,
-            itemBuilder: (context, index) {
-              final document = displayFixtures[index];
-              final data = document.data() as Map<String, dynamic>;
-
-              final String team1Name = data['team1Name'] ?? 'Team A';
-              final String team2Name = data['team2Name'] ?? 'Team B';
-              final String time = data['time'] ?? 'N/A';
-              final String date = data['date'] ?? 'N/A'; // Also display the date
-              // You can potentially fetch logo URLs here if stored in Firestore
-              // final String? team1LogoUrl = data['team1LogoUrl'];
-              // final String? team2LogoUrl = data['team2LogoUrl'];
-
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12.0),
-                elevation: 4.0, // Increased elevation for more depth
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15.0), // More rounded corners
-                ),
-                child: InkWell( // Make the card tappable for editing
-                  onTap: () => _upsertFixture(document), // Pass the document to edit.
-                  borderRadius: BorderRadius.circular(15.0),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.center,
+          // The StreamBuilder for displaying fixtures takes the rest of the space
+          Expanded( // Use Expanded to make the ListView fill remaining space
+            child: StreamBuilder<QuerySnapshot>(
+              stream: firestoreQuery.snapshots(),
+              builder: (context, snapshot) {
+                // Handle potential Firestore errors.
+                if (snapshot.hasError) {
+                  print("Firestore Error: ${snapshot.error}"); // Log the error for debugging.
+                  return Center(
+                      child: Text('Error loading data: ${snapshot.error}', style: const TextStyle(color: Colors.red, fontSize: 16)));
+                }
+                // Show a loading indicator while data is being fetched.
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent)));
+                }
+                // If no data is available from Firestore at all.
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  String emptyMessage;
+                  if (_filterMode == 'upcoming') {
+                    emptyMessage = 'No upcoming fixtures scheduled.';
+                  } else if (_filterMode == 'past') {
+                    emptyMessage = 'No past fixtures found.';
+                  } else {
+                    emptyMessage = 'No fixtures for today.';
+                  }
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Left Team
-                        Expanded(
-                          flex: 3,
-                          child: Column(
-                            children: [
-                              Container(
-                                width: 60.0, // Slightly larger logo area
-                                height: 60.0,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.grey[200], // Lighter grey for placeholder
-                                  border: Border.all(color: Colors.blue.shade200, width: 1.0), // Subtle border
-                                ),
-                                // You would load an image here if a URL is available:
-                                // child: team1LogoUrl != null
-                                //     ? ClipOval(child: Image.network(team1LogoUrl, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => Icon(Icons.error)))
-                                //     : Icon(Icons.shield_outlined, size: 30.0, color: Colors.blueGrey.shade400),
-                                child: Icon(Icons.shield_outlined, size: 30.0, color: Colors.blueGrey.shade400), // Placeholder icon
-                              ),
-                              const SizedBox(height: 8.0),
-                              Text(
-                                team1Name,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold, color: Colors.blueGrey),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                        // Center Information (Time & Status)
-                        Expanded(
-                          flex: 2,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                time,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18.0,
-                                  color: Colors.blue, // Highlight time
-                                ),
-                              ),
-                              // Display the date for all fixtures
-                              Text(
-                                DateFormat('MMM d, yyyy').format(DateTime.parse(date)),
-                                style: TextStyle(fontSize: 12.0, color: Colors.grey[600]),
-                              ),
-                              const SizedBox(height: 8.0),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue[50], // Lighter blue background
-                                  borderRadius: BorderRadius.circular(20.0), // More rounded pill shape
-                                  border: Border.all(color: Colors.blue.shade100),
-                                ),
-                                child: Text('Scheduled', style: TextStyle(color: Colors.blue[800], fontSize: 11.0, fontWeight: FontWeight.w600)),
-                              ),
-                            ],
-                          ),
-                        ),
-                        // Right Team
-                        Expanded(
-                          flex: 3,
-                          child: Column(
-                            children: [
-                              Container(
-                                width: 60.0,
-                                height: 60.0,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.grey[200],
-                                  border: Border.all(color: Colors.blue.shade200, width: 1.0),
-                                ),
-                                // You would load an image here if a URL is available:
-                                // child: team2LogoUrl != null
-                                //     ? ClipOval(child: Image.network(team2LogoUrl, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => Icon(Icons.error)))
-                                //     : Icon(Icons.shield_outlined, size: 30.0, color: Colors.blueGrey.shade400),
-                                child: Icon(Icons.shield_outlined, size: 30.0, color: Colors.blueGrey.shade400),
-                              ),
-                              const SizedBox(height: 8.0),
-                              Text(
-                                team2Name,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold, color: Colors.blueGrey),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                        // Delete Button
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 24),
-                          onPressed: () => _confirmDelete(document.id), // Confirm before deleting.
-                        ),
+                        const Icon(Icons.event_note, size: 80, color: Colors.grey),
+                        const SizedBox(height: 10),
+                        Text(emptyMessage, style: const TextStyle(color: Colors.grey, fontSize: 18, fontStyle: FontStyle.italic)),
+                        const Text('Tap the "+" button to add one!', style: TextStyle(color: Colors.grey, fontSize: 14)),
                       ],
                     ),
-                  ),
-                ),
-              );
-            },
-          );
-        },
+                  );
+                }
+
+                final List<DocumentSnapshot> displayFixtures = snapshot.data!.docs;
+
+                // Display the filtered list of fixtures.
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16.0),
+                  itemCount: displayFixtures.length,
+                  itemBuilder: (context, index) {
+                    final document = displayFixtures[index];
+                    final data = document.data() as Map<String, dynamic>;
+
+                    final String team1Name = data['team1Name'] ?? 'Team A';
+                    final String team2Name = data['team2Name'] ?? 'Team B';
+                    final String time = data['time'] ?? 'N/A';
+                    final String date = data['date'] ?? 'N/A'; // Also display the date
+                    // You can potentially fetch logo URLs here if stored in Firestore
+                    // final String? team1LogoUrl = data['team1LogoUrl'];
+                    // final String? team2LogoUrl = data['team2LogoUrl'];
+
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12.0),
+                      elevation: 4.0, // Increased elevation for more depth
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15.0), // More rounded corners
+                      ),
+                      child: InkWell( // Make the card tappable for editing
+                        onTap: () => _upsertFixture(document), // Pass the document to edit.
+                        borderRadius: BorderRadius.circular(15.0),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              // Left Team
+                              Expanded(
+                                flex: 3,
+                                child: Column(
+                                  children: [
+                                    Container(
+                                      width: 60.0, // Slightly larger logo area
+                                      height: 60.0,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: Colors.grey[200], // Lighter grey for placeholder
+                                        border: Border.all(color: Colors.blue.shade200, width: 1.0), // Subtle border
+                                      ),
+                                      // You would load an image here if a URL is available:
+                                      // child: team1LogoUrl != null
+                                      //      ? ClipOval(child: Image.network(team1LogoUrl, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => Icon(Icons.error)))
+                                      //      : Icon(Icons.shield_outlined, size: 30.0, color: Colors.blueGrey.shade400),
+                                      child: Icon(Icons.shield_outlined, size: 30.0, color: Colors.blueGrey.shade400), // Placeholder icon
+                                    ),
+                                    const SizedBox(height: 8.0),
+                                    Text(
+                                      team1Name,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold, color: Colors.blueGrey),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // Center Information (Time & Status)
+                              Expanded(
+                                flex: 2,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      time,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18.0,
+                                        color: Colors.blue, // Highlight time
+                                      ),
+                                    ),
+                                    // Display the date for all fixtures
+                                    Text(
+                                      DateFormat('MMM d, y').format(DateTime.parse(date)),
+                                      style: TextStyle(fontSize: 12.0, color: Colors.grey[600]),
+                                    ),
+                                    const SizedBox(height: 8.0),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blue[50], // Lighter blue background
+                                        borderRadius: BorderRadius.circular(20.0), // More rounded pill shape
+                                        border: Border.all(color: Colors.blue.shade100),
+                                      ),
+                                      child: Text('Scheduled', style: TextStyle(color: Colors.blue[800], fontSize: 11.0, fontWeight: FontWeight.w600)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // Right Team
+                              Expanded(
+                                flex: 3,
+                                child: Column(
+                                  children: [
+                                    Container(
+                                      width: 60.0,
+                                      height: 60.0,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: Colors.grey[200],
+                                        border: Border.all(color: Colors.blue.shade200, width: 1.0),
+                                      ),
+                                      // You would load an image here if a URL is available:
+                                      // child: team2LogoUrl != null
+                                      //      ? ClipOval(child: Image.network(team2LogoUrl, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => Icon(Icons.error)))
+                                      //      : Icon(Icons.shield_outlined, size: 30.0, color: Colors.blueGrey.shade400),
+                                      child: Icon(Icons.shield_outlined, size: 30.0, color: Colors.blueGrey.shade400),
+                                    ),
+                                    const SizedBox(height: 8.0),
+                                    Text(
+                                      team2Name,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold, color: Colors.blueGrey),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // Delete Button
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 24),
+                                onPressed: () => _confirmDelete(document.id), // Confirm before deleting.
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _upsertFixture(), // Call without arguments to add a new fixture.
