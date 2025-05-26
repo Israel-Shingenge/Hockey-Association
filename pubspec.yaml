@@ -49,6 +49,10 @@ dependencies:
   path_provider: ^2.1.5
   firebase_messaging: ^15.2.6
   flutter_local_notifications: ^19.2.1
+  http: ^1.4.0
+  flutter_typeahead: ^5.2.0
+  flutter_map: ^8.1.1
+  latlong2: ^0.9.1
 
 dev_dependencies:
   flutter_test:

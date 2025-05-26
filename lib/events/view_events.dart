@@ -31,7 +31,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
   Future<bool> _isEventRegistered(String eventId) async {
     final regDoc = await FirebaseFirestore.instance
-        .collection('Events')
+        .collection('events')
         .doc(eventId)
         .collection('registration')
         .doc(userId)
@@ -63,7 +63,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
     if (confirmRegistration) {
       final regRef = FirebaseFirestore.instance
-          .collection('Events')
+          .collection('events')
           .doc(eventId)
           .collection('registration')
           .doc(userId);
@@ -115,7 +115,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
     if (confirmUnregistration) {
       final regRef = FirebaseFirestore.instance
-          .collection('Events')
+          .collection('events')
           .doc(eventId)
           .collection('registration')
           .doc(userId);
@@ -163,9 +163,9 @@ class _EventDetailPageState extends State<EventDetailPage> {
         false;
     if (confirmDelete) {
       try {
-        await FirebaseFirestore.instance.collection('Events').doc(eventId).delete();
+        await FirebaseFirestore.instance.collection('events').doc(eventId).delete();
         final registrationDocs = await FirebaseFirestore.instance
-            .collection('Events')
+            .collection('events')
             .doc(eventId)
             .collection('registration')
             .get();
@@ -260,7 +260,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
   Widget _buildAllEventsList() {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('Events').snapshots(),
+      stream: FirebaseFirestore.instance.collection('events').snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) return const Center(child: Text('Error loading events'));
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -288,7 +288,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
   Widget _buildMyEventsList() {
     return FutureBuilder<QuerySnapshot>(
-      future: FirebaseFirestore.instance.collection('Events').get(),
+      future: FirebaseFirestore.instance.collection('events').get(),
       builder: (context, allEventsSnapshot) {
         if (allEventsSnapshot.hasError) {
           return const Center(child: Text('Error loading events'));
@@ -302,7 +302,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
         return FutureBuilder<List<Map<String, dynamic>?>>(
           future: Future.wait(allEvents.map((eventDoc) async {
             final regDoc = await FirebaseFirestore.instance
-                .collection('Events')
+                .collection('events')
                 .doc(eventDoc.id)
                 .collection('registration')
                 .doc(userId)

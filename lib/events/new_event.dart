@@ -1,6 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
+// Nominatim service & model inside the same file for simplicity
+class NominatimService {
+  static const String _baseUrl = 'https://nominatim.openstreetmap.org/search';
+
+  static Future<List<NominatimPlace>> fetchSuggestions(String query) async {
+    final url = Uri.parse(
+      '$_baseUrl?q=$query&format=json&addressdetails=1&countrycodes=na&limit=5',
+    );
+
+    final response = await http.get(url, headers: {
+      'User-Agent': 'HockeyUnion - israelrshingene@gmail.com', // Replace with your details
+    });
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      return data.map((e) => NominatimPlace.fromJson(e)).toList();
+    } else {
+      throw Exception('Failed to fetch suggestions');
+    }
+  }
+}
+
+class NominatimPlace {
+  final String displayName;
+  final double lat;
+  final double lon;
+
+  NominatimPlace({
+    required this.displayName,
+    required this.lat,
+    required this.lon,
+  });
+
+  factory NominatimPlace.fromJson(Map<String, dynamic> json) {
+    return NominatimPlace(
+      displayName: json['display_name'],
+      lat: double.parse(json['lat']),
+      lon: double.parse(json['lon']),
+    );
+  }
+}
 
 class AddNewEventPage extends StatefulWidget {
   const AddNewEventPage({super.key});
@@ -17,6 +61,11 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
   final _durationController = TextEditingController();
   String? _selectedVolunteerAssignment;
   final _notesController = TextEditingController();
+
+  // New variables for autocomplete
+  List<NominatimPlace> _suggestions = [];
+  bool _isLoadingSuggestions = false;
+  NominatimPlace? _selectedPlace;
 
   @override
   void dispose() {
@@ -117,12 +166,20 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
       );
       return;
     }
+    if (_locationController.text.isEmpty || _selectedPlace == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a valid location from suggestions.')),
+      );
+      return;
+    }
 
     final gameData = {
       'nameOfEvent': _eventNameController.text,
       'date': Timestamp.fromDate(_selectedDateTime!),
       'repeats': _repeats,
       'location': _locationController.text,
+      'latitude': _selectedPlace!.lat,
+      'longitude': _selectedPlace!.lon,
       'volunteerAssignments': _selectedVolunteerAssignment ?? '',
       'duration': _durationController.text,
       'notes': _notesController.text,
@@ -130,7 +187,7 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
     };
 
     try {
-      await FirebaseFirestore.instance.collection('Events').add(gameData);
+      await FirebaseFirestore.instance.collection('events').add(gameData);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Event created successfully!')),
@@ -219,26 +276,69 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
               ),
             ),
             const SizedBox(height: 16.0),
-            TextFormField(
-              controller: _locationController,
-              decoration: const InputDecoration(
-                labelText: 'Location',
-                border: OutlineInputBorder(),
-                hintText: 'e.g., Nust basketball court',
-              ),
+            // Location with autocomplete suggestions
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextFormField(
+                  controller: _locationController,
+                  decoration: const InputDecoration(
+                    labelText: 'Location',
+                    border: OutlineInputBorder(),
+                    hintText: 'Start typing location...',
+                  ),
+                  onChanged: (value) async {
+                    if (value.length < 3) {
+                      setState(() {
+                        _suggestions = [];
+                      });
+                      return;
+                    }
+                    setState(() {
+                      _isLoadingSuggestions = true;
+                    });
+                    try {
+                      final results = await NominatimService.fetchSuggestions(value);
+                      setState(() {
+                        _suggestions = results;
+                        _isLoadingSuggestions = false;
+                      });
+                    } catch (e) {
+                      setState(() {
+                        _suggestions = [];
+                        _isLoadingSuggestions = false;
+                      });
+                    }
+                  },
+                ),
+                if (_isLoadingSuggestions)
+                  const LinearProgressIndicator(),
+                ..._suggestions.map(
+                  (place) => ListTile(
+                    title: Text(place.displayName),
+                    onTap: () {
+                      setState(() {
+                        _locationController.text = place.displayName;
+                        _selectedPlace = place;
+                        _suggestions = [];
+                      });
+                    },
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16.0),
             InkWell(
               onTap: () => _selectVolunteerAssignment(context),
               child: InputDecorator(
                 decoration: const InputDecoration(
-                  labelText: 'Volunteer Assignments',
+                  labelText: 'Volunteer Assignment',
                   border: OutlineInputBorder(),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: <Widget>[
-                    Text(_selectedVolunteerAssignment ?? 'Please select'),
+                    Text(_selectedVolunteerAssignment ?? 'Select Volunteer Assignment'),
                     const Icon(Icons.arrow_forward_ios),
                   ],
                 ),
@@ -250,9 +350,7 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
               decoration: const InputDecoration(
                 labelText: 'Duration',
                 border: OutlineInputBorder(),
-                hintText: 'e.g., 2 hours, 90 minutes',
               ),
-              keyboardType: TextInputType.text,
             ),
             const SizedBox(height: 16.0),
             TextFormField(
@@ -261,9 +359,9 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
                 labelText: 'Notes',
                 border: OutlineInputBorder(),
               ),
-              maxLines: 4,
+              maxLines: 5,
             ),
-            const SizedBox(height: 32.0),
+            const SizedBox(height: 16.0),
           ],
         ),
       ),
