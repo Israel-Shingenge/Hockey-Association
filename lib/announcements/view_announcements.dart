@@ -16,25 +16,25 @@ class _AnnouncementPageState extends State<AnnouncementPage> {
   // Use a mutable list so that changes from ManageAnnouncementsPage can be reflected
   final List<Map<String, String>> _newsItems = [
     {
-      'image': 'practice_update.png',
+      'image': 'maintenance.png',
       'title': 'Practice Update: INDOOR Tonight!',
       'description': "Tonight's practice (May 27th) at Khomasdal Stadium is MOVED INDOORS to Windhoek High School Gym. 7 PM - 8:30 PM. Bring indoor shoes.",
       'date': '2024-05-27',
     },
     {
-      'image': 'volunteer_signup.png',
+      'image': 'maintenance.png',
       'title': 'Last Call: Tournament Volunteer Sign-Up!',
       'description': "Final reminder! Volunteer sign-up for the 'Khomas Hockey Challenger' (June 1st) closes tomorrow evening. Your help is vital!",
       'date': '2024-05-31',
     },
     {
-      'image': 'game_time_change.png',
+      'image': 'maintenance.png',
       'title': 'U16 Game Time Change (June 8th)',
       'description': "U16 Game on June 8th vs. Ramblers is now at 11:30 AM (was 10:00 AM) at Wanderers Hockey Club.",
       'date': '2024-06-07',
     },
     {
-      'image': 'app_maintenance.png',
+      'image': 'maintenance.png',
       'title': 'App Maintenance This Weekend',
       'description': "App maintenance scheduled for Sat, June 15th (10 PM) to Sun, June 16th (6 AM CAT). Some features may be unavailable.",
       'date': '2024-06-14',
@@ -175,7 +175,7 @@ class _AnnouncementPageState extends State<AnnouncementPage> {
                   title: item['title']!,
                   description: item['description']!,
                 ),
-              )).toList(),
+              )),
             ],
           ),
         ),

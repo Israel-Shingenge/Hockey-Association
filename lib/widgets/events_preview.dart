@@ -10,7 +10,7 @@ class EventsPreviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     // Reference to your 'events' collection in Firestore.
     // Make sure the collection name matches exactly in Firestore.
-    final CollectionReference eventsCollection = FirebaseFirestore.instance.collection('Events');
+    final CollectionReference eventsCollection = FirebaseFirestore.instance.collection('events');
 
     // Get the start of today to filter for upcoming events.
     final DateTime today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);

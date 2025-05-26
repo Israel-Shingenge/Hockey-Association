@@ -1,11 +1,13 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:hockey_union/announcements/view_announcements.dart';
 import 'package:hockey_union/home/home_drawer.dart';
 import 'package:hockey_union/profile/player_profile.dart';
 import 'package:hockey_union/teams/add_player.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Import SharedPreferences
-import 'dart:io'; // Import dart:io for File
+import 'package:shared_preferences/shared_preferences.dart';
 
 class TeamPage extends StatefulWidget {
   const TeamPage({super.key});
@@ -20,25 +22,71 @@ class _TeamPageState extends State<TeamPage> {
   String _sortBy = 'firstName';
   bool _sortDescending = false;
 
-  // Cache for profile image paths to avoid repeated SharedPreferences reads
   final Map<String, String?> _profileImageCache = {};
+
+  String? userRole;
+  bool _loadingRole = true;
 
   @override
   void initState() {
     super.initState();
-    _loadAllPlayerImages(); // Load images for all players when the page initializes
+    _loadUserRole();
+    _loadAllPlayerImages();
   }
 
-  // Method to load all player images into the cache
+  Future<void> _loadUserRole() async {
+    print('*** _loadUserRole started');
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print('No logged-in user found.');
+        setState(() {
+          userRole = null;
+          _loadingRole = false;
+        });
+        return;
+      }
+
+      print('Fetching user role for uid: ${user.uid}');
+      final doc = await FirebaseFirestore.instance.collection('Users').doc(user.uid).get();
+
+      if (!doc.exists) {
+        print('User document does not exist for uid: ${user.uid}');
+        setState(() {
+          userRole = 'player'; // fallback role
+          _loadingRole = false;
+        });
+        return;
+      }
+
+      final role = doc.data()?['role'] as String?;
+      print('Role fetched from Firestore: $role');
+
+      setState(() {
+        userRole = role ?? 'player'; // Default to player if no role found
+        _loadingRole = false;
+      });
+      print('User role set to: $userRole');
+    } catch (e, st) {
+      print('Error fetching user role: $e');
+      print('Stack trace: $st');
+      setState(() {
+        userRole = 'player'; // fallback role on error
+        _loadingRole = false;
+      });
+    }
+    print('*** _loadUserRole ended');
+  }
+
   Future<void> _loadAllPlayerImages() async {
     final prefs = await SharedPreferences.getInstance();
-    FirebaseFirestore.instance.collection('Player').get().then((snapshot) {
-      if (mounted) {
-        setState(() {
-          for (var doc in snapshot.docs) {
-            _profileImageCache[doc.id] = prefs.getString('profile_image_${doc.id}');
-          }
-        });
+    final snapshot = await FirebaseFirestore.instance.collection('Player').get();
+    if (!mounted) return;
+
+    setState(() {
+      for (var doc in snapshot.docs) {
+        final path = prefs.getString('profile_image_${doc.id}');
+        _profileImageCache[doc.id] = path;
       }
     });
   }
@@ -47,7 +95,10 @@ class _TeamPageState extends State<TeamPage> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const AddPlayerPage()),
-    );
+    ).then((_) {
+      // Reload images after returning
+      _loadAllPlayerImages();
+    });
   }
 
   Widget _buildSortMenu() {
@@ -112,14 +163,18 @@ class _TeamPageState extends State<TeamPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loadingRole) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.menu),
-          onPressed: () {
-            _scaffoldKey.currentState?.openDrawer();
-          },
+          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
         ),
         title: Center(
           child: Image.asset('assets/images/NHU.png', height: 30),
@@ -142,45 +197,46 @@ class _TeamPageState extends State<TeamPage> {
       drawer: const HomeDrawer(),
       body: Column(
         children: [
-          Card(
-            margin: const EdgeInsets.all(16.0),
-            color: Colors.white,
-            elevation: 2.0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Add Your Team',
-                    style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 10.0),
-                  const Icon(Icons.people_alt, size: 40.0, color: Colors.grey),
-                  const SizedBox(height: 10.0),
-                  const Text(
-                    'Register your team members and invite\nthem to join you on NHA',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 14.0, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 20.0),
-                  ElevatedButton(
-                    onPressed: _showAddPlayerPage,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromARGB(255, 11, 71, 182),
-                      padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 15.0),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+          if (userRole == 'Admin' || userRole == 'Manager')
+            Card(
+              margin: const EdgeInsets.all(16.0),
+              color: Colors.white,
+              elevation: 2.0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Add Your Team',
+                      style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
                     ),
-                    child: const Text(
-                      'ADD TEAM MEMBER',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    const SizedBox(height: 10.0),
+                    const Icon(Icons.people_alt, size: 40.0, color: Colors.grey),
+                    const SizedBox(height: 10.0),
+                    const Text(
+                      'Register your team members and invite\nthem to join you on NHA',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 14.0, color: Colors.grey),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 20.0),
+                    ElevatedButton(
+                      onPressed: _showAddPlayerPage,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromARGB(255, 11, 71, 182),
+                        padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 15.0),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                      ),
+                      child: const Text(
+                        'ADD TEAM MEMBER',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
           const SizedBox(height: 16.0),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
@@ -251,7 +307,6 @@ class _TeamPageState extends State<TeamPage> {
                             return const SizedBox.shrink();
                           }
 
-                          // Retrieve the image path from the cache (or SharedPreferences)
                           final String? profileImagePath = _profileImageCache[docId];
 
                           return _buildPlayerListItem(docId, fullName, data, profileImagePath);
@@ -275,45 +330,85 @@ class _TeamPageState extends State<TeamPage> {
     );
   }
 
-  Widget _buildPlayerListItem(String playerId, String playerName, Map<String, dynamic> playerData, String? profileImagePath) {
+  Widget _buildPlayerListItem(
+    String playerId,
+    String playerName,
+    Map<String, dynamic> playerData,
+    String? profileImagePath,
+  ) {
+    // Only Admin & Manager can open player details
+    final canViewDetails = userRole == 'Admin' || userRole == 'Manager';
+
     return InkWell(
-      onTap: () async { // Make onTap async to await updates if coming back from profile page
-        await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PlayerProfilePage(
-              playerId: playerId,
-              playerData: playerData,
-              playerName: playerName,
-            ),
-          ),
-        );
-        // After returning from PlayerProfilePage, reload images to ensure the latest is displayed
-        _loadAllPlayerImages();
-      },
+      onTap: canViewDetails
+          ? () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => PlayerProfilePage(
+                    playerId: playerId,
+                    playerData: playerData,
+                    playerName: playerName,
+                  ),
+                ),
+              );
+              _loadAllPlayerImages();
+            }
+          : null,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-        color: Colors.white,
         child: Row(
           children: [
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: Colors.grey[200],
-              backgroundImage: profileImagePath != null
-                  ? FileImage(File(profileImagePath)) as ImageProvider<Object>? // Use FileImage for local paths
-                  : null,
-              child: profileImagePath == null
-                  ? Icon(Icons.person, color: Colors.grey[700], size: 30)
-                  : null,
+            ClipOval(
+              child: profileImagePath != null && profileImagePath.isNotEmpty && File(profileImagePath).existsSync()
+                  ? Image.file(
+                      File(profileImagePath),
+                      width: 48,
+                      height: 48,
+                      fit: BoxFit.cover,
+                    )
+                  : Container(
+                      width: 48,
+                      height: 48,
+                      color: Colors.grey[300],
+                      child: Icon(
+                        Icons.person,
+                        size: 30,
+                        color: Colors.grey[700],
+                      ),
+                    ),
             ),
             const SizedBox(width: 16.0),
             Expanded(
-              child: Text(
-                playerName,
-                style: const TextStyle(fontSize: 16.0, color: Colors.black87),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    playerName,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    'Jersey: ${playerData['jerseyNumber'] ?? 'N/A'}',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  Text(
+                    'Position: ${playerData['position'] ?? 'N/A'}',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, size: 16.0, color: Colors.grey),
+            if (canViewDetails)
+              const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
           ],
         ),
       ),

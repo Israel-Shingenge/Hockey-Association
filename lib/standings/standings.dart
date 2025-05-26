@@ -52,7 +52,7 @@ class _StandingsPageState extends State<StandingsPage> {
     final TextEditingController goalsAgainstController = TextEditingController(text: '0');
 
     // MODIFIED: State variable for the selected league type in the dialog (only Mens/Womens)
-    LeagueType? _dialogSelectedLeagueType;
+    LeagueType? dialogSelectedLeagueType;
 
     await showDialog(
       context: context,
@@ -68,7 +68,7 @@ class _StandingsPageState extends State<StandingsPage> {
                   // MODIFIED: Dropdown for League Type (only Mens/Womens)
                   const SizedBox(height: 10),
                   DropdownButtonFormField<LeagueType>(
-                    value: _dialogSelectedLeagueType,
+                    value: dialogSelectedLeagueType,
                     decoration: const InputDecoration(
                       labelText: 'League Type',
                       border: OutlineInputBorder(),
@@ -81,7 +81,7 @@ class _StandingsPageState extends State<StandingsPage> {
                     }).toList(),
                     onChanged: (LeagueType? newValue) {
                       setStateModal(() { // Use setStateModal for the modal's state
-                        _dialogSelectedLeagueType = newValue;
+                        dialogSelectedLeagueType = newValue;
                       });
                     },
                     validator: (value) {
@@ -106,7 +106,7 @@ class _StandingsPageState extends State<StandingsPage> {
               TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
               ElevatedButton(
                 onPressed: () async {
-                  if (nameController.text.isEmpty || _dialogSelectedLeagueType == null) {
+                  if (nameController.text.isEmpty || dialogSelectedLeagueType == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Please enter team name and select a league type.')),
                     );
@@ -115,7 +115,7 @@ class _StandingsPageState extends State<StandingsPage> {
 
                   await _standings.add({
                     'clubName': nameController.text,
-                    'leagueType': _dialogSelectedLeagueType!.displayName, // Still saving as 'leagueType'
+                    'leagueType': dialogSelectedLeagueType!.displayName, // Still saving as 'leagueType'
                     'points': int.tryParse(pointsController.text) ?? 0,
                     'wins': int.tryParse(winsController.text) ?? 0,
                     'losses': int.tryParse(lossesController.text) ?? 0,

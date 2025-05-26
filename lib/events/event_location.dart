@@ -33,7 +33,7 @@ class _EventLocationPageState extends State<EventLocationPage> {
       final response = await http.get(
         Uri.parse(url),
         headers: {
-          'User-Agent': 'YourAppName - your_email@example.com', // Replace this!
+          'User-Agent': 'HockeyUnion - israelrshingenge@gmail.com', 
         },
       );
 
@@ -83,7 +83,7 @@ class _EventLocationPageState extends State<EventLocationPage> {
                   fontSize: 16)));
     } else if (latitude != null && longitude != null) {
       final staticMapUrl =
-          'https://static-maps.yandex.ru/1.x/?ll=$longitude,$latitude&size=${mapWidth},${mapHeight}&z=13&l=map&pt=$longitude,$latitude,pm2rdm';
+          'https://static-maps.yandex.ru/1.x/?ll=$longitude,$latitude&size=$mapWidth,$mapHeight&z=13&l=map&pt=$longitude,$latitude,pm2rdm';
 
       content = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
