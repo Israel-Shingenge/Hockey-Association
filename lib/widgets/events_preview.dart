@@ -1,29 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:intl/intl.dart'; // For date formatting
-import 'package:hockey_union/events/view_events.dart'; // Assuming EventDetailPage is your full events listing page
+import 'package:intl/intl.dart';
+import 'package:hockey_union/events/view_events.dart'; // Ensure this path is correct
 
 class EventsPreviewCard extends StatelessWidget {
-  const EventsPreviewCard({super.key}); // Removed the 'events' parameter
+  const EventsPreviewCard({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Reference to your 'events' collection in Firestore.
-    // Make sure the collection name matches exactly in Firestore.
-    final CollectionReference eventsCollection = FirebaseFirestore.instance.collection('events');
+    // Define the Firestore collection reference once.
+    final CollectionReference eventsCollection =
+        FirebaseFirestore.instance.collection('events');
 
-    // Get the start of today to filter for upcoming events.
-    final DateTime today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    // Calculate the start of today for filtering upcoming events.
+    final DateTime today = DateTime.now().startOfDay; // Using a convenient extension
 
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       margin: const EdgeInsets.symmetric(vertical: 8),
-      child: InkWell( // Makes the entire card tappable
+      child: InkWell(
         onTap: () {
+          // Navigate to the full events listing page.
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const EventDetailPage()), // Navigate to full EventsListingPage
+            MaterialPageRoute(builder: (context) => const EventDetailPage()),
           );
         },
         borderRadius: BorderRadius.circular(12),
@@ -32,122 +33,36 @@ class EventsPreviewCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Removed 'Upcoming Events' header and icon as HomePage provides it.
-              // The entire card is now tappable to navigate to all events.
-              // Use StreamBuilder to fetch real-time event data
               StreamBuilder<QuerySnapshot>(
-                // Query for events where 'date' (your Timestamp field) is today or in the future
-                // Ordered by 'date' to get the soonest events first, and limited to 3 for preview.
+                // Fetch upcoming events, ordered by date and limited to 3.
                 stream: eventsCollection
                     .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(today))
-                    .orderBy('date', descending: false)
-                    .limit(3) // Limit to show only a few upcoming events
+                    .orderBy('date') // Default to ascending for upcoming events
+                    .limit(3)
                     .snapshots(),
                 builder: (context, snapshot) {
-                  // Handle error state
+                  // Handle different connection states and errors.
                   if (snapshot.hasError) {
-                    return Center(
-                      child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red)),
-                    );
+                    return _buildMessage('Error loading events: ${snapshot.error}',
+                        color: Colors.red);
                   }
 
-                  // Handle loading state
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 20.0),
-                        child: CircularProgressIndicator(),
-                      ),
-                    );
+                    return const _LoadingIndicator();
                   }
 
-                  // If no upcoming events are found
+                  // If no upcoming events, display a message.
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 20.0),
-                      child: Center(
-                        child: Text(
-                          'No upcoming events scheduled.',
-                          style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Colors.grey),
-                        ),
-                      ),
-                    );
+                    return _buildMessage('No upcoming events scheduled.');
                   }
 
-                  // Display the list of upcoming events
+                  // Display the list of upcoming events.
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: snapshot.data!.docs.map((document) {
-                      final data = document.data() as Map<String, dynamic>;
-                      final String eventName = data['nameOfEvent'] ?? 'No Name';
-                      final Timestamp eventTimestamp = data['date'] as Timestamp;
-                      final DateTime eventDate = eventTimestamp.toDate();
-                      final String? location = data['location']; // Assuming you have a 'location' field
-                      final String? imageUrl = data['imageUrl']; // Assuming you have an 'imageUrl' field
-
-                      // Format the date for display
-                      final String formattedDate = DateFormat('MMM d, y').format(eventDate);
-
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0), // Increased padding
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Event Image
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8.0),
-                              child: imageUrl != null && imageUrl.isNotEmpty
-                                  ? Image.asset( // Assuming image is an asset
-                                      imageUrl,
-                                      height: 60,
-                                      width: 60,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return Container( // Fallback if image not found
-                                          height: 60,
-                                          width: 60,
-                                          color: Colors.grey[300],
-                                          child: const Icon(Icons.event, color: Colors.grey),
-                                        );
-                                      },
-                                    )
-                                  : Container( // Fallback if imageUrl is null or empty
-                                      height: 60,
-                                      width: 60,
-                                      color: Colors.grey[300],
-                                      child: const Icon(Icons.event, color: Colors.grey),
-                                    ),
-                            ),
-                            const SizedBox(width: 12),
-                            // Event Details (Name, Date, Location)
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    eventName,
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  Text(
-                                    formattedDate,
-                                    style: const TextStyle(color: Colors.grey),
-                                  ),
-                                  if (location != null && location.isNotEmpty) // Display location if available
-                                    Text(
-                                      location,
-                                      style: const TextStyle(color: Colors.grey),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
+                    children: snapshot.data!.docs
+                        .map((document) =>
+                            _buildEventListItem(document.data() as Map<String, dynamic>))
+                        .toList(),
                   );
                 },
               ),
@@ -155,7 +70,7 @@ class EventsPreviewCard extends StatelessWidget {
               Align(
                 alignment: Alignment.centerRight,
                 child: Text(
-                  'Tap to view all events >', // This text indicates the card is tappable
+                  'Tap to view all events >',
                   style: TextStyle(color: Colors.blue[700], fontSize: 13),
                 ),
               ),
@@ -164,5 +79,117 @@ class EventsPreviewCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  // Helper method to build individual event list items.
+  Widget _buildEventListItem(Map<String, dynamic> data) {
+    final String eventName = data['nameOfEvent'] ?? 'No Name';
+    final DateTime eventDate = (data['date'] as Timestamp).toDate();
+    final String? location = data['location'];
+    final String? imageUrl = data['imageUrl'];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _EventImage(imageUrl: imageUrl),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  eventName,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  DateFormat('MMM d, y').format(eventDate),
+                  style: const TextStyle(color: Colors.grey),
+                ),
+                if (location != null && location.isNotEmpty)
+                  Text(
+                    location,
+                    style: const TextStyle(color: Colors.grey),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Helper method for displaying messages (errors, no data).
+  Widget _buildMessage(String message, {Color color = Colors.grey}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 20.0),
+      child: Center(
+        child: Text(
+          message,
+          style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: color),
+        ),
+      ),
+    );
+  }
+}
+
+// Custom widget for the loading indicator.
+class _LoadingIndicator extends StatelessWidget {
+  const _LoadingIndicator();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 20.0),
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
+}
+
+// Custom widget for displaying event images with fallbacks.
+class _EventImage extends StatelessWidget {
+  final String? imageUrl;
+
+  const _EventImage({required this.imageUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8.0),
+      child: (imageUrl != null && imageUrl!.isNotEmpty)
+          ? Image.asset(
+              imageUrl!,
+              height: 60,
+              width: 60,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return _buildFallbackImage();
+              },
+            )
+          : _buildFallbackImage(),
+    );
+  }
+
+  Widget _buildFallbackImage() {
+    return Container(
+      height: 60,
+      width: 60,
+      color: Colors.grey[300],
+      child: const Icon(Icons.event, color: Colors.grey),
+    );
+  }
+}
+
+// Extension to easily get the start of the day.
+extension DateTimeExtension on DateTime {
+  DateTime get startOfDay {
+    return DateTime(year, month, day);
   }
 }

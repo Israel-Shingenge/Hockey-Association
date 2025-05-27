@@ -31,7 +31,6 @@ class _CreateTeamPageState extends State<CreateTeamPage> {
       }
 
       try {
-        
         final teamRef = await FirebaseFirestore.instance.collection('Teams').add({
           'clubName': _clubNameController.text.trim(),
           'clubLeague': _clubLeagueController.text.trim(),
@@ -39,12 +38,13 @@ class _CreateTeamPageState extends State<CreateTeamPage> {
           'email': _emailController.text.trim(),
           'phoneNumber': _phoneNumberController.text.trim(),
           'clubDescription': _clubDescriptionController.text.trim(),
-          'uid': uid,
+          'managerFirebaseUid': uid, // Renamed 'uid' to 'managerFirebaseUid' here
           'createdAt': FieldValue.serverTimestamp(),
           'logoUrl': null, 
         });
 
-        
+        // This 'creatorInfo' subcollection might be redundant if 'managerFirebaseUid' is enough.
+        // If you need more complex auditing, keep it. Otherwise, you can remove it.
         await teamRef.collection('creatorInfo').doc('details').set({
           'createdByUid': uid,
           'createdAt': FieldValue.serverTimestamp(),

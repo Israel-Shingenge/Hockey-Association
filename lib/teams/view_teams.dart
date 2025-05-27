@@ -13,27 +13,69 @@ class TeamSelectionPage extends StatefulWidget {
 }
 
 class _TeamSelectionPageState extends State<TeamSelectionPage> {
-  // Removed GlobalKey<ScaffoldState> _scaffoldKey as it's no longer needed for opening the drawer
   List<DocumentSnapshot> _userTeams = [];
   final Map<String, File?> _localLogos = {};
+  // Add a flag to prevent multiple loads of local logos
+  bool _localLogosLoadedForCurrentTeams = false;
 
   @override
   void initState() {
     super.initState();
-    _loadLocalLogos();
+    // Initial loading of logos will now happen after the first stream data
+    // _loadLocalLogos(); // Removed from here as _userTeams is initially empty
   }
 
-  Future<void> _loadLocalLogos() async {
+  // Modified to take a list of teams, so it can be called when data is available
+  Future<void> _loadLocalLogos(List<DocumentSnapshot> teams) async {
+    if (teams.isEmpty) return; // No teams to load logos for
+
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    for (var team in _userTeams) {
+    // Create a temporary map to build new logos
+    final Map<String, File?> newLocalLogos = {}; 
+
+    for (var team in teams) {
       final teamData = team.data() as Map<String, dynamic>;
-      final teamName = teamData['clubName'];
-      final logoPath = prefs.getString('team_logo_$teamName');
-      if (logoPath != null && File(logoPath).existsSync()) {
-        _localLogos[teamName] = File(logoPath);
+      final clubName = teamData['clubName'];
+      // Only load if not already in _localLogos or if path changed
+      if (clubName != null && !_localLogos.containsKey(clubName)) {
+        final logoPath = prefs.getString('team_logo_$clubName');
+        if (logoPath != null && File(logoPath).existsSync()) {
+          newLocalLogos[clubName] = File(logoPath);
+        } else {
+          newLocalLogos[clubName] = null; // Mark as null if no local logo
+        }
+      } else if (clubName != null && _localLogos.containsKey(clubName)) {
+        newLocalLogos[clubName] = _localLogos[clubName]; // Keep existing if present
       }
     }
-    setState(() {});
+
+    // Only call setState if there are new logos to add
+    if (newLocalLogos.isNotEmpty && !mapEquals(_localLogos, newLocalLogos)) {
+      setState(() {
+        _localLogos.clear();
+        _localLogos.addAll(newLocalLogos);
+        _localLogosLoadedForCurrentTeams = true; // Set flag
+      });
+    } else if (newLocalLogos.isEmpty && _localLogos.isNotEmpty) {
+       // If no local logos found for new teams and _localLogos was previously populated, clear it.
+       setState(() {
+        _localLogos.clear();
+        _localLogosLoadedForCurrentTeams = true;
+       });
+    } else {
+      _localLogosLoadedForCurrentTeams = true; // Even if no new logos, mark as loaded
+    }
+  }
+
+  // Helper to compare maps (optional, but good for efficiency)
+  bool mapEquals(Map<String, File?> m1, Map<String, File?> m2) {
+    if (m1.length != m2.length) return false;
+    for (final key in m1.keys) {
+      if (!m2.containsKey(key) || m1[key] != m2[key]) {
+        return false;
+      }
+    }
+    return true;
   }
 
   void _navigateToEditTeamPage(DocumentSnapshot team) {
@@ -56,7 +98,11 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
           teamLogoUrl: logoUrl,
         ),
       ),
-    ).then((_) => _loadLocalLogos()); // Refresh local logos after editing
+    ).then((_) {
+        // After returning from EditTeamPage, reload logos for the *current* teams
+        // This ensures any logo changes made in EditTeamPage are reflected.
+        _loadLocalLogos(_userTeams); 
+    });
   }
 
   @override
@@ -64,14 +110,11 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
     final uid = FirebaseAuth.instance.currentUser?.uid;
 
     return Scaffold(
-      // Removed key: _scaffoldKey
       appBar: AppBar(
-        // MODIFIED: Only keep the back button
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(), // Navigate back
         ),
-        // MODIFIED: Keep the logo in the center
         title: Center(
           child: SizedBox(
             height: 30,
@@ -108,13 +151,12 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
         ),
         actions: const [SizedBox(width: 56)],
       ),
-      // REMOVED: drawer: const HomeDrawer(),
       body: uid == null
           ? const Center(child: Text('No user is logged in.'))
           : StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('Teams')
-                  .where('uid', isEqualTo: uid)
+                  .where('managerFirebaseUid', isEqualTo: uid)
                   .orderBy('createdAt', descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
@@ -123,25 +165,37 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
                 } else if (snapshot.hasError) {
                   return Center(child: Text('Error loading teams: ${snapshot.error}'));
                 } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  // If no data, ensure logos are cleared and flag reset
+                  _userTeams = [];
+                  if (_localLogos.isNotEmpty || _localLogosLoadedForCurrentTeams) {
+                    _localLogos.clear();
+                    _localLogosLoadedForCurrentTeams = false;
+                  }
                   return const Center(child: Text('No teams available.'));
                 } else {
+                  // Update _userTeams list
                   _userTeams = snapshot.data!.docs;
-                    if (_localLogos.isEmpty) {
-                      _loadLocalLogos();
-                    }
+
+                  // Only load local logos if they haven't been loaded for the current set of teams
+                  // This is a simple flag-based debounce. More complex solutions exist for large lists.
+                  if (!_localLogosLoadedForCurrentTeams || _userTeams.length != _localLogos.length) {
+                    _localLogosLoadedForCurrentTeams = false; // Reset if team count changes, indicating a new load might be needed
+                    _loadLocalLogos(_userTeams);
+                  }
+
                   return ListView.builder(
                     itemCount: _userTeams.length,
                     itemBuilder: (context, index) {
                       final team = _userTeams[index];
                       final teamData = team.data() as Map<String, dynamic>;
                       final clubName = teamData['clubName'] ?? 'Unnamed Club';
-                      final logoFile = _localLogos[clubName];
+                      final logoFile = _localLogos[clubName]; // Access local logo from the map
 
                       return ListTile(
                         leading: CircleAvatar(
                           backgroundImage: logoFile != null
                               ? FileImage(logoFile)
-                              : const AssetImage('assets/images/default_team_logo.png') as ImageProvider,
+                              : const AssetImage('assets/images/NHU.png') as ImageProvider,
                         ),
                         title: Text(clubName),
                         onTap: () {

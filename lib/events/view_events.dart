@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:hockey_union/events/event_description.dart'; // Assuming EventTeamsPage is in this file
+import 'package:firebase_auth/firebase_auth.dart'; // Import FirebaseAuth
+import 'package:hockey_union/events/event_description.dart';
 import 'package:hockey_union/home/home_drawer.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
@@ -16,12 +17,71 @@ class _EventDetailPageState extends State<EventDetailPage> {
   Map<String, dynamic>? selectedEvent;
   String _currentView = 'all'; // Keep track of the current view
 
-  // Placeholder for the current user's ID and email.
-  // In a real application, these would be fetched from your authentication system (e.g., Firebase Auth).
-  final String userId = 'CURRENT_USER_ID'; // Replace with actual user ID
-  final String userEmail = 'user@example.com'; // Replace with actual user email
+  // FirebaseAuth and Firestore instances
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Modified to accept the current view
+  String? _userRole; // To store the user's role
+  bool _loadingRole = true; // To manage loading state for the role
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserRole(); // Load user role on init
+    // Listen for auth state changes to update the user role dynamically
+    _auth.authStateChanges().listen((User? user) {
+      if (user != null) {
+        _fetchUserRole(user.uid);
+      } else {
+        setState(() {
+          _userRole = 'player'; // Default to player if no user is logged in
+          _loadingRole = false;
+        });
+      }
+    });
+  }
+
+  // Fetches the user's role from Firestore
+  Future<void> _fetchUserRole(String uid) async {
+    try {
+      final doc = await _firestore.collection('Users').doc(uid).get();
+      if (doc.exists) {
+        setState(() {
+          _userRole = doc.data()?['role'] as String? ?? 'player'; // Default to player
+          _loadingRole = false;
+        });
+      } else {
+        setState(() {
+          _userRole = 'player'; // If no user document, default to player
+          _loadingRole = false;
+        });
+      }
+    } catch (e) {
+      print("Error fetching user role: $e");
+      setState(() {
+        _userRole = 'player'; // On error, default to player
+        _loadingRole = false;
+      });
+    }
+  }
+
+  // Initiates loading the user role, checking current user first
+  Future<void> _loadUserRole() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      setState(() {
+        _userRole = 'player';
+        _loadingRole = false;
+      });
+    } else {
+      await _fetchUserRole(user.uid);
+    }
+  }
+
+  // Helper getters for role checks
+  bool get _isAdmin => _userRole == 'Admin';
+  bool get _isManager => _userRole == 'Manager';
+
   void _toggleEventDetailsPopup(Map<String, dynamic> event) {
     setState(() {
       selectedEvent = event;
@@ -30,16 +90,31 @@ class _EventDetailPageState extends State<EventDetailPage> {
   }
 
   Future<bool> _isEventRegistered(String eventId) async {
+    final user = _auth.currentUser;
+    if (user == null) return false; // Not registered if no user logged in
+
     final regDoc = await FirebaseFirestore.instance
         .collection('events')
         .doc(eventId)
         .collection('registration')
-        .doc(userId)
+        .doc(user.uid)
         .get();
     return regDoc.exists;
   }
 
   Future<void> _registerForEvent(String eventId) async {
+    // Only Admin and Manager roles can register
+    if (!_isAdmin && !_isManager) {
+      _showSnackBar('You do not have permission to register for events.');
+      return;
+    }
+
+    final user = _auth.currentUser;
+    if (user == null) {
+      _showSnackBar('You must be logged in to register for an event.');
+      return;
+    }
+
     final bool confirmRegistration = await showDialog(
           context: context,
           builder: (BuildContext context) {
@@ -66,12 +141,12 @@ class _EventDetailPageState extends State<EventDetailPage> {
           .collection('events')
           .doc(eventId)
           .collection('registration')
-          .doc(userId);
+          .doc(user.uid);
 
       try {
         await regRef.set({
-          'userID': userId,
-          'email': userEmail,
+          'userID': user.uid,
+          'email': user.email,
           'timestamp': FieldValue.serverTimestamp(),
         });
 
@@ -91,6 +166,18 @@ class _EventDetailPageState extends State<EventDetailPage> {
   }
 
   Future<void> _unregisterFromEvent(String eventId) async {
+    // Only Admin and Manager roles can unregister
+    if (!_isAdmin && !_isManager) {
+      _showSnackBar('You do not have permission to unregister from events.');
+      return;
+    }
+
+    final user = _auth.currentUser;
+    if (user == null) {
+      _showSnackBar('You must be logged in to unregister from an event.');
+      return;
+    }
+
     final bool confirmUnregistration = await showDialog(
           context: context,
           builder: (BuildContext context) {
@@ -118,7 +205,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
           .collection('events')
           .doc(eventId)
           .collection('registration')
-          .doc(userId);
+          .doc(user.uid);
 
       try {
         await regRef.delete();
@@ -139,6 +226,12 @@ class _EventDetailPageState extends State<EventDetailPage> {
   }
 
   Future<void> _deleteEvent(String eventId) async {
+    // Only Admin role can delete events
+    if (!_isAdmin) {
+      _showSnackBar('You do not have permission to delete events.');
+      return;
+    }
+
     final bool confirmDelete = await showDialog(
           context: context,
           builder: (BuildContext context) {
@@ -186,6 +279,12 @@ class _EventDetailPageState extends State<EventDetailPage> {
           SnackBar(content: Text('Failed to delete event: $e')),
         );
       }
+    }
+  }
+
+  void _showSnackBar(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
@@ -287,6 +386,11 @@ class _EventDetailPageState extends State<EventDetailPage> {
   }
 
   Widget _buildMyEventsList() {
+    final user = _auth.currentUser;
+    if (user == null) {
+      return const Center(child: Text('Please log in to view your registered events.'));
+    }
+
     return FutureBuilder<QuerySnapshot>(
       future: FirebaseFirestore.instance.collection('events').get(),
       builder: (context, allEventsSnapshot) {
@@ -305,7 +409,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                 .collection('events')
                 .doc(eventDoc.id)
                 .collection('registration')
-                .doc(userId)
+                .doc(user.uid) // Use the actual user ID
                 .get();
 
             if (regDoc.exists) {
@@ -342,6 +446,12 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loadingRole) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         leading: Builder(
@@ -425,26 +535,30 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                 Text('Notes: ${selectedEvent!['notes'] ?? 'No notes'}'),
                                 Text('Duration: ${selectedEvent!['duration'] ?? 'N/A'}'),
                                 const SizedBox(height: 16),
-                                // Conditional rendering of Register/Unregister button
-                                if (_currentView == 'my' && isRegistered)
-                                  ElevatedButton(
-                                    onPressed: () => _unregisterFromEvent(selectedEvent!['id']),
-                                    style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-                                    child: const Text('Unregister from this event',
-                                        style: TextStyle(color: Colors.white)),
-                                  )
-                                else if (_currentView == 'all' && !isRegistered)
-                                  ElevatedButton(
-                                    onPressed: () => _registerForEvent(selectedEvent!['id']),
-                                    child: const Text('Register for this event'),
+                                // Conditional rendering of Register/Unregister/Delete button based on role and view
+                                if (_isAdmin || _isManager) // Admin and Manager can register/unregister
+                                  if (isRegistered)
+                                    ElevatedButton(
+                                      onPressed: () => _unregisterFromEvent(selectedEvent!['id']),
+                                      style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                                      child: const Text('Unregister from this event',
+                                          style: TextStyle(color: Colors.white)),
+                                    )
+                                  else
+                                    ElevatedButton(
+                                      onPressed: () => _registerForEvent(selectedEvent!['id']),
+                                      child: const Text('Register for this event'),
+                                    ),
+                                if (_isAdmin) // Only Admin can delete
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8.0),
+                                    child: ElevatedButton(
+                                      onPressed: () => _deleteEvent(selectedEvent!['id']),
+                                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                                      child:
+                                          const Text('Delete Event', style: TextStyle(color: Colors.white)),
+                                    ),
                                   ),
-                                const SizedBox(height: 8),
-                                ElevatedButton(
-                                  onPressed: () => _deleteEvent(selectedEvent!['id']),
-                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                                  child:
-                                      const Text('Delete Event', style: TextStyle(color: Colors.white)),
-                                ),
                                 const SizedBox(height: 8),
                                 ElevatedButton(
                                   onPressed: () => setState(() => _showEventDetailsPopup = false),

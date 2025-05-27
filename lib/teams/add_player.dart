@@ -1,230 +1,518 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:hockey_union/home/home_drawer.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart'; // For date formatting
 
 class AddPlayerPage extends StatefulWidget {
-  const AddPlayerPage({super.key});
+  final String? teamId;
+
+  const AddPlayerPage({super.key, this.teamId});
 
   @override
   State<AddPlayerPage> createState() => _AddPlayerPageState();
 }
 
 class _AddPlayerPageState extends State<AddPlayerPage> {
-  final _firstNameController = TextEditingController();
-  final _lastNameController = TextEditingController();
-  final _birthdayController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _lastNameController = TextEditingController();
+  final TextEditingController _birthdayController = TextEditingController();
+  final TextEditingController _positionController = TextEditingController();
+  final TextEditingController _jerseyNumberController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+
   String? _selectedGender;
-  final _positionController = TextEditingController();
-  final _jerseyNumberController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _phoneController = TextEditingController();
+  DateTime? _selectedDate;
+
+  String? _currentUserRole;
+  String? _selectedTeamId;
+  String? _selectedTeamName;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.teamId != null && widget.teamId!.isNotEmpty) {
+      _selectedTeamId = widget.teamId;
+      _fetchTeamName(_selectedTeamId!);
+    }
+    _fetchCurrentUserRole();
+  }
+
+  Future<void> _fetchCurrentUserRole() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final userDoc =
+          await FirebaseFirestore.instance.collection('Users').doc(user.uid).get();
+      if (userDoc.exists) {
+        setState(() {
+          _currentUserRole = userDoc.data()?['role'];
+        });
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error: User not signed in.')),
+      );
+      // Removed Navigator.of(context).pop(); to avoid pop if user is not signed in directly from this page start
+      // Consider navigating to login page or handle appropriately.
+    }
+  }
+
+  Future<void> _fetchTeamName(String teamId) async {
+    try {
+      final teamDoc = await FirebaseFirestore.instance.collection('Teams').doc(teamId).get();
+      if (teamDoc.exists) {
+        setState(() {
+          _selectedTeamName = teamDoc.data()?['clubName'];
+        });
+      }
+    } catch (e) {
+      print('Error fetching team name: $e');
+    }
+  }
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: _selectedDate ?? DateTime(2000),
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
     );
-    if (picked != null) {
+    if (picked != null && picked != _selectedDate) {
       setState(() {
-        _birthdayController.text = "${picked.day}/${picked.month}/${picked.year}";
+        _selectedDate = picked;
+        _birthdayController.text = DateFormat('dd/MM/yyyy').format(picked);
       });
     }
   }
 
   Future<void> _addPlayer() async {
-    final firstName = _firstNameController.text.trim();
-    final lastName = _lastNameController.text.trim();
-    final birthday = _birthdayController.text.trim();
-    final gender = _selectedGender;
-    final position = _positionController.text.trim();
-    final jerseyNumber = int.tryParse(_jerseyNumberController.text.trim()) ?? 0;
-    final email = _emailController.text.trim();
-    final phone = int.tryParse(_phoneController.text.trim()) ?? 0;
-
-    if (firstName.isNotEmpty && lastName.isNotEmpty && email.isNotEmpty) {
-      // Save the player data to Firestore
-      await FirebaseFirestore.instance.collection('Player').add({
-        'firstName': firstName,
-        'lastName': lastName,
-        'birthday': birthday,
-        'gender': gender,
-        'position': position,
-        'jerseyNumber': jerseyNumber,
-        'email': email,
-        'phone': phone,
-        'createdAt': Timestamp.now(),
-      });
-
-      Navigator.of(context).pop(); // Go back to the previous page
-    } else {
-      // Show a message if any field is missing
+    if (_selectedTeamId == null || _selectedTeamId!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all the required fields')),
+        const SnackBar(content: Text('Error: No team selected. Cannot add player.')),
       );
+      return;
+    }
+
+    if (_formKey.currentState!.validate()) {
+      try {
+        await FirebaseFirestore.instance.collection('Player').add({
+          'firstName': _firstNameController.text.trim(),
+          'lastName': _lastNameController.text.trim(),
+          'birthday': _birthdayController.text.trim(),
+          'gender': _selectedGender,
+          'position': _positionController.text.trim(),
+          'jerseyNumber': int.tryParse(_jerseyNumberController.text.trim()),
+          'email': _emailController.text.trim(),
+          'phone': int.tryParse(_phoneController.text.trim()),
+          'teamId': _selectedTeamId,
+          'firebaseAuthUid': null,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Player added successfully!')),
+        );
+        Navigator.of(context).pop();
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to add player: $e')),
+        );
+      }
     }
   }
 
   @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _birthdayController.dispose();
+    _positionController.dispose();
+    _jerseyNumberController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_currentUserRole == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_currentUserRole == 'Admin' && _selectedTeamId == null) {
+      return _buildAdminTeamSelection(context);
+    } else {
+      return _buildPlayerForm(context);
+    }
+  }
+
+  // --- START OF VISUAL IMPROVEMENTS ---
+
+  Widget _buildAdminTeamSelection(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: Builder(
-          builder: (BuildContext context) {
-            return IconButton(
-              icon: const Icon(Icons.menu),
-              onPressed: () {
-                Scaffold.of(context).openDrawer();
-              },
-            );
-          },
+        title: const Text(
+          'Select Team to Add Player',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
-        title: Center(
-          child: SizedBox(
-            height: 30,
-            child: Image.asset(
-              'assets/images/NHU.png', // Replace with your actual logo path
-              fit: BoxFit.contain,
-            ),
-          ),
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(50),
-          child: Container(
-            color: Colors.blue[900], // Match the bar's background color
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Expanded(
-                  child: Row(
-                    children: [
-                      Text(
-                        'Add Player',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                      ),
-                      // You can add an optional icon here if needed
-                    ],
-                  ),
-                ),
-                // "Close" and "Save" buttons moved here to the bottom bar
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text('Close', style: TextStyle(color: Colors.white)),
-                ),
-                const SizedBox(width: 8),
-              ],
-            ),
-          ),
-        ),
-        actions: const [
-          SizedBox(width: 56), // To offset the leading icon if title is centered
-        ],
+        backgroundColor: const Color.fromARGB(255, 11, 71, 182), // Consistent app bar color
+        elevation: 0, // Flat app bar
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.white), // White back icon
       ),
-      drawer: const HomeDrawer(),
-      body: SingleChildScrollView(
+      body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch, // Make children take full width
-          children: <Widget>[
-            const SizedBox(height: 24.0), // Added some top spacing below the AppBar
-            const Text('Player details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0)),
-            const SizedBox(height: 8.0),
-            TextField(
-              controller: _firstNameController,
-              decoration: const InputDecoration(labelText: 'First Name', border: OutlineInputBorder()),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Choose a team to add a new player.',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
             ),
-            const SizedBox(height: 12.0),
-            TextField(
-              controller: _lastNameController,
-              decoration: const InputDecoration(labelText: 'Last Name', border: OutlineInputBorder()),
+            const SizedBox(height: 20),
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance.collection('Teams').snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'No teams found in the database.',
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                    );
+                  }
+
+                  final teams = snapshot.data!.docs;
+
+                  return ListView.builder(
+                    itemCount: teams.length,
+                    itemBuilder: (context, index) {
+                      final teamDoc = teams[index];
+                      final teamData = teamDoc.data() as Map<String, dynamic>;
+                      final teamName = teamData['clubName'] ?? 'Unnamed Team';
+                      final teamLeague = teamData['clubLeague'] ?? 'No League';
+                      final teamId = teamDoc.id;
+
+                      final isSelected = _selectedTeamId == teamId;
+
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedTeamId = teamId;
+                            _selectedTeamName = teamName;
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Team "$teamName" selected.'),
+                              duration: const Duration(seconds: 1),
+                            ),
+                          );
+                        },
+                        child: Card(
+                          margin: const EdgeInsets.only(bottom: 12.0),
+                          elevation: isSelected ? 4 : 2, // Highlight selected card
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: isSelected
+                                ? const BorderSide(color: const Color.fromARGB(255, 11, 71, 182), width: 2) // Border for selected
+                                : BorderSide.none,
+                          ),
+                          color: isSelected ? Colors.blueAccent.withOpacity(0.1) : Colors.white,
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Row(
+                              children: [
+                                // Optional: Add a subtle icon or image placeholder
+                                Icon(
+                                  Icons.sports_hockey, // Example icon
+                                  color: isSelected ? Colors.blueAccent : Colors.grey[600],
+                                  size: 30,
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        teamName,
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: isSelected ? Colors.blueAccent : Colors.black87,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        teamLeague,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: isSelected ? Colors.blue.shade700 : Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (isSelected)
+                                  const Icon(Icons.check_circle, color: const Color.fromARGB(255, 11, 71, 182),),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
             ),
-            const SizedBox(height: 12.0),
-            TextField(
-              controller: _birthdayController,
-              decoration: InputDecoration(
-                labelText: 'Birthday',
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.calendar_today),
-                  onPressed: () => _selectDate(context),
+            // Optional: A button to proceed after selection (if not automatic)
+            if (_selectedTeamId != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 16.0),
+                child: ElevatedButton(
+                  onPressed: () {
+                    // This triggers the form to show since _selectedTeamId is now set
+                    setState(() {});
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color.fromARGB(255, 11, 71, 182),
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'Continue to Add Player Details',
+                      style: TextStyle(fontSize: 18, color: Colors.white),
+                    ),
+                  ),
                 ),
               ),
-              readOnly: true,
-              onTap: () => _selectDate(context),
-            ),
-            const SizedBox(height: 12.0),
-            const Text('Gender', style: TextStyle(fontWeight: FontWeight.bold)),
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: RadioListTile<String>(
-                    title: const Text('M'),
-                    value: 'M',
-                    groupValue: _selectedGender,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedGender = value;
-                      });
-                    },
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- END OF VISUAL IMPROVEMENTS ---
+
+  Widget _buildPlayerForm(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          _selectedTeamName != null
+              ? 'Add Player to $_selectedTeamName'
+              : 'Add Player',
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+      backgroundColor: const Color.fromARGB(255, 11, 71, 182),
+        elevation: 0,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.white),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              if (_currentUserRole == 'Admin' && _selectedTeamName != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: Text(
+                    'Adding player to: $_selectedTeamName',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blueAccent,
+                    ),
                   ),
                 ),
-                Expanded(
-                  child: RadioListTile<String>(
-                    title: const Text('F'),
-                    value: 'F',
-                    groupValue: _selectedGender,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedGender = value;
-                      });
-                    },
+              TextFormField(
+                controller: _firstNameController,
+                decoration: const InputDecoration(
+                  labelText: 'First Name',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color:  Color.fromARGB(255, 11, 71, 182), width: 2),
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 12.0),
-            TextField(
-              controller: _positionController,
-              decoration: const InputDecoration(labelText: 'Position', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 12.0),
-            TextField(
-              controller: _jerseyNumberController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Jersey number', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 16.0),
-            const Text('Contact information', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0)),
-            const SizedBox(height: 8.0),
-            TextField(
-              controller: _emailController,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 12.0),
-            TextField(
-              controller: _phoneController,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: 'Phone', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 32.0), // Increased spacing before the button
-            // Centralized and wider Save button
-            SizedBox(
-              width: double.infinity, // Make the button take full width
-              child: ElevatedButton(
+                validator: (value) =>
+                    value!.isEmpty ? 'Please enter first name' : null,
+              ),
+              const SizedBox(height: 16.0),
+              TextFormField(
+                controller: _lastNameController,
+                decoration: const InputDecoration(
+                  labelText: 'Last Name',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color:  Color.fromARGB(255, 11, 71, 182), width: 2),
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                  ),
+                ),
+                validator: (value) =>
+                    value!.isEmpty ? 'Please enter last name' : null,
+              ),
+              const SizedBox(height: 16.0),
+              TextFormField(
+                controller: _birthdayController,
+                decoration: InputDecoration(
+                  labelText: 'Birthday (DD/MM/YYYY)',
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.calendar_today, color:  Color.fromARGB(255, 11, 71, 182),),
+                    onPressed: () => _selectDate(context),
+                  ),
+                  border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
+                  focusedBorder: const OutlineInputBorder(
+                    borderSide: BorderSide(color: Color.fromARGB(255, 11, 71, 182), width: 2),
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                  ),
+                ),
+                readOnly: true,
+                validator: (value) =>
+                    value!.isEmpty ? 'Please select birthday' : null,
+                onTap: () => _selectDate(context),
+              ),
+              const SizedBox(height: 16.0),
+              DropdownButtonFormField<String>(
+                value: _selectedGender,
+                decoration: const InputDecoration(
+                  labelText: 'Gender',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color:  Color.fromARGB(255, 11, 71, 182), width: 2),
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                  ),
+                ),
+                items: <String>['M', 'F', 'Other']
+                    .map((String value) => DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value),
+                        ))
+                    .toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _selectedGender = newValue;
+                  });
+                },
+                validator: (value) =>
+                    value == null ? 'Please select gender' : null,
+              ),
+              const SizedBox(height: 16.0),
+              TextFormField(
+                controller: _positionController,
+                decoration: const InputDecoration(
+                  labelText: 'Position',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color:  Color.fromARGB(255, 11, 71, 182), width: 2),
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                  ),
+                ),
+                validator: (value) =>
+                    value!.isEmpty ? 'Please enter position' : null,
+              ),
+              const SizedBox(height: 16.0),
+              TextFormField(
+                controller: _jerseyNumberController,
+                decoration: const InputDecoration(
+                  labelText: 'Jersey Number',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Color.fromARGB(255, 11, 71, 182), width: 2),
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                  ),
+                ),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter jersey number';
+                  }
+                  if (int.tryParse(value) == null) {
+                    return 'Please enter a valid number';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16.0),
+              TextFormField(
+                controller: _emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color:  Color.fromARGB(255, 11, 71, 182), width: 2),
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                  ),
+                ),
+                keyboardType: TextInputType.emailAddress,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter email';
+                  }
+                  if (!value.contains('@') || !value.contains('.')) {
+                    return 'Please enter a valid email';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16.0),
+              TextFormField(
+                controller: _phoneController,
+                decoration: const InputDecoration(
+                  labelText: 'Phone Number',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color:  Color.fromARGB(255, 11, 71, 182), width: 2),
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                  ),
+                ),
+                keyboardType: TextInputType.phone,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter phone number';
+                  }
+                  if (int.tryParse(value) == null) {
+                    return 'Please enter a valid number';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 32.0),
+              ElevatedButton(
                 onPressed: _addPlayer,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue[900],
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  backgroundColor: const Color.fromARGB(255, 11, 71, 182),// Use blueAccent for consistency
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)), // More rounded corners
                 ),
-                child: const Text('Save', style: TextStyle(color: Colors.white)),
+                child: const Text(
+                  'Add Player',
+                  style: TextStyle(fontSize: 18, color: Colors.white),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
