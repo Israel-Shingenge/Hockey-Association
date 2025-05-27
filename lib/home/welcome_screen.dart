@@ -1,4 +1,3 @@
-// lib/welcome_screen.dart
 import 'package:flutter/material.dart';
 import 'package:hockey_union/widget_tree.dart';
 

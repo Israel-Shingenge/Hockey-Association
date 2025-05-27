@@ -1,6 +1,5 @@
-// lib/fixtures/fixtures.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Import FirebaseAuth
+import 'package:firebase_auth/firebase_auth.dart'; 
 import 'package:flutter/material.dart';
 
 enum FixtureFilter { past, today, upcoming }
@@ -8,7 +7,6 @@ enum FixtureFilter { past, today, upcoming }
 enum LeagueType {
   mensDivision('Mens Division'),
   womensDivision('Womens Division');
-  // Removed indoorHockey and outdoorHockey
 
   final String displayName;
   const LeagueType(this.displayName);
@@ -18,7 +16,6 @@ enum LeagueFilter {
   all('All'),
   mensDivision('Mens Division'),
   womensDivision('Womens Division');
-  // Removed indoorHockey and outdoorHockey
 
   final String displayName;
   const LeagueFilter(this.displayName);
@@ -52,7 +49,6 @@ class _FixturesPageState extends State<FixturesPage> {
   // --- Role Management from TeamPage ---
   String? _userRole; // Changed to nullable string for initial state
   bool _loadingRole = true;
-  // -----------------------------------
 
   @override
   void initState() {
@@ -74,7 +70,7 @@ class _FixturesPageState extends State<FixturesPage> {
   Future<void> _loadUserRole() async {
     print('*** _loadUserRole for FixturesPage started');
     try {
-      final user = _auth.currentUser; // Use _auth instance
+      final user = _auth.currentUser; 
       if (user == null) {
         print('No logged-in user found.');
         setState(() {
@@ -126,9 +122,7 @@ class _FixturesPageState extends State<FixturesPage> {
     }
   }
 
-  bool get _isAdmin => _userRole == 'Admin'; // Matches your "Admin" string
-  // -----------------------------------
-
+  bool get _isAdmin => _userRole == 'Admin'; 
 
   @override
   void dispose() {
@@ -172,7 +166,6 @@ class _FixturesPageState extends State<FixturesPage> {
       _showSnackBar('You do not have permission to create or update fixtures.');
       return;
     }
-    // -------------------
 
     if (documentSnapshot != null) {
       final data = documentSnapshot.data() as Map<String, dynamic>;
@@ -332,7 +325,7 @@ class _FixturesPageState extends State<FixturesPage> {
       _showSnackBar('You do not have permission to delete fixtures.');
       return;
     }
-    // -------------------
+
     await _fixturesCollection.doc(fixtureId).delete();
     _showSnackBar('You have successfully deleted a fixture');
   }
@@ -343,7 +336,6 @@ class _FixturesPageState extends State<FixturesPage> {
       _showSnackBar('You do not have permission to update scores.');
       return;
     }
-    // -------------------
 
     final data = fixtureDocument.data() as Map<String, dynamic>;
     final currentScore = data['score'] ?? '0 - 0';
@@ -445,7 +437,6 @@ class _FixturesPageState extends State<FixturesPage> {
         body: Center(child: CircularProgressIndicator()),
       );
     }
-    // ----------------------------
 
     return Scaffold(
       appBar: AppBar(

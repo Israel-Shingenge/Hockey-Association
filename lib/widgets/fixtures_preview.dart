@@ -1,9 +1,8 @@
-// lib/home/fixtures_preview_card.dart
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hockey_union/standings/fixtures.dart';
-import 'package:intl/intl.dart'; // For date and time formatting
+import 'package:intl/intl.dart'; 
 
 class FixturesPreviewCard extends StatelessWidget {
   const FixturesPreviewCard({super.key});
@@ -202,13 +201,6 @@ class FixturesPreviewCard extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 10),
-              Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  'Tap to view all fixtures >', // This text indicates the card is tappable
-                  style: TextStyle(color: Colors.blue[700], fontSize: 13),
-                ),
-              ),
             ],
           ),
         ),

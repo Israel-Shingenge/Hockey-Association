@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import 'package:hockey_union/events/view_events.dart'; // Ensure this path is correct
+import 'package:hockey_union/events/view_events.dart'; 
 
 class EventsPreviewCard extends StatelessWidget {
   const EventsPreviewCard({super.key});
@@ -67,13 +67,6 @@ class EventsPreviewCard extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 10),
-              Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  'Tap to view all events >',
-                  style: TextStyle(color: Colors.blue[700], fontSize: 13),
-                ),
-              ),
             ],
           ),
         ),

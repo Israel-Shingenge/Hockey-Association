@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Import FirebaseAuth
+import 'package:firebase_auth/firebase_auth.dart'; 
 import 'package:hockey_union/events/event_description.dart';
 import 'package:hockey_union/home/home_drawer.dart';
 import 'package:intl/intl.dart';

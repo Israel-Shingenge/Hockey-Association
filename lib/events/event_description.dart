@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hockey_union/events/event_location.dart';
 import 'package:intl/intl.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore
+import 'package:cloud_firestore/cloud_firestore.dart'; 
 
 class EventTeamsPage extends StatefulWidget {
   final Map<String, dynamic> event;

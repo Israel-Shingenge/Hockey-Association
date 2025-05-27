@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hockey_union/news/article_detail.dart';
 import 'news_service.dart';
 import 'article.dart';
-import 'package:hockey_union/home/home_drawer.dart'; // Your drawer
+import 'package:hockey_union/home/home_drawer.dart'; 
 
 class NewsPage extends StatefulWidget {
   const NewsPage({super.key});

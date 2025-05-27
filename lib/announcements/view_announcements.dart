@@ -83,7 +83,7 @@ class _AnnouncementPageState extends State<AnnouncementPage> {
     }
 
     // Determine if the current user is an admin or manager
-    bool isAdminOrManager = _userRole == 'Admin' || _userRole == 'Manager';
+    bool isAdminOrManager = _userRole == 'Admin';
 
     return Scaffold(
       key: _scaffoldKey,
@@ -100,7 +100,7 @@ class _AnnouncementPageState extends State<AnnouncementPage> {
           child: SizedBox(
             height: 30,
             child: Image.asset(
-              'assets/images/NHU.png', // NHU logo for the AppBar
+              'assets/images/NHU.png', 
               fit: BoxFit.contain,
             ),
           ),

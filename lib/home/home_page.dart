@@ -204,23 +204,7 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            const SizedBox(height: 16),
-            Align(
-              alignment: Alignment.center,
-              child: SizedBox(
-                height: 50,
-                child: ListView(
-                  shrinkWrap: true,
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  children: [
-                    _buildSportTypeButton('Mens Division'),
-                    const SizedBox(width: 8),
-                    _buildSportTypeButton('Womens Division'),
-                  ],
-                ),
-              ),
-            ),
+            // Removed the ListView containing 'Mens Division' and 'Womens Division' buttons
             const SizedBox(height: 16),
             const SizedBox(height: 8),
             SizedBox(
@@ -378,21 +362,4 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildSportTypeButton(String text) {
-    return ElevatedButton(
-      onPressed: () {
-        debugPrint('$text button pressed');
-      },
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: Colors.grey),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      ),
-      child: Text(text),
-    );
-  }
 }

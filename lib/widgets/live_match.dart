@@ -1,4 +1,3 @@
-// lib/widgets/live_match_card_firestore.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hockey_union/standings/standings.dart';

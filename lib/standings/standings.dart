@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:hockey_union/home/home_drawer.dart'; // Assuming you have a HomeDrawer
+import 'package:hockey_union/home/home_drawer.dart'; 
+import 'package:firebase_auth/firebase_auth.dart'; 
 
 // MODIFIED: LeagueType enum to only include Mens and Womens Division
 enum LeagueType {
@@ -20,7 +21,6 @@ enum LeagueFilter {
   const LeagueFilter(this.displayName);
 }
 
-
 class StandingsPage extends StatefulWidget {
   const StandingsPage({super.key});
 
@@ -29,19 +29,57 @@ class StandingsPage extends StatefulWidget {
 }
 
 class _StandingsPageState extends State<StandingsPage> {
-  // Collection reference pointing to your 'standings' collection
   final CollectionReference _standings = FirebaseFirestore.instance.collection('Standings');
+  LeagueFilter _selectedLeagueFilter = LeagueFilter.mensDivision; // Default to Mens Division
 
-  // MODIFIED: Default selected league filter is Mens Division
-  LeagueFilter _selectedLeagueFilter = LeagueFilter.mensDivision;
+  String? _currentUserRole; // To store the role of the current user
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCurrentUserRole(); // Fetch user role on page load
+  }
+
+  // Fetches the role of the currently logged-in user
+  Future<void> _fetchCurrentUserRole() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final userDoc = await FirebaseFirestore.instance.collection('Users').doc(user.uid).get();
+      if (userDoc.exists) {
+        setState(() {
+          _currentUserRole = userDoc.data()?['role'];
+        });
+      }
+    } else {
+      // If no user is logged in, default to a role that cannot edit
+      setState(() {
+        _currentUserRole = 'Guest';
+      });
+    }
+  }
 
   // Function to update a specific field for a team in the standings
+  // Now includes a role check
   Future<void> _updateTeamField(String docId, String field, dynamic value) async {
-    await _standings.doc(docId).update({field: value});
+    if (_currentUserRole == 'Admin') {
+      await _standings.doc(docId).update({field: value});
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Permission Denied: Only Admins can modify standings.')),
+      );
+    }
   }
 
   // Dialog to add a new team to the standings
+  // Now includes a role check before showing
   Future<void> _addTeamDialog(BuildContext context) async {
+    if (_currentUserRole != 'Admin') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Permission Denied: Only Admins can add teams to standings.')),
+      );
+      return;
+    }
+
     final TextEditingController nameController = TextEditingController();
     final TextEditingController pointsController = TextEditingController(text: '0');
     final TextEditingController winsController = TextEditingController(text: '0');
@@ -51,12 +89,11 @@ class _StandingsPageState extends State<StandingsPage> {
     final TextEditingController goalsForController = TextEditingController(text: '0');
     final TextEditingController goalsAgainstController = TextEditingController(text: '0');
 
-    // MODIFIED: State variable for the selected league type in the dialog (only Mens/Womens)
     LeagueType? dialogSelectedLeagueType;
 
     await showDialog(
       context: context,
-      builder: (context) => StatefulBuilder( // Use StatefulBuilder to update dropdown in dialog
+      builder: (context) => StatefulBuilder(
         builder: (BuildContext context, StateSetter setStateModal) {
           return AlertDialog(
             title: const Text('Add New Team'),
@@ -64,14 +101,20 @@ class _StandingsPageState extends State<StandingsPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Team Name')),
-                  // MODIFIED: Dropdown for League Type (only Mens/Womens)
-                  const SizedBox(height: 10),
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Team Name',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 15),
                   DropdownButtonFormField<LeagueType>(
                     value: dialogSelectedLeagueType,
                     decoration: const InputDecoration(
                       labelText: 'League Type',
                       border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 5), // Adjusted padding
                     ),
                     items: LeagueType.values.map((LeagueType league) {
                       return DropdownMenuItem<LeagueType>(
@@ -80,7 +123,7 @@ class _StandingsPageState extends State<StandingsPage> {
                       );
                     }).toList(),
                     onChanged: (LeagueType? newValue) {
-                      setStateModal(() { // Use setStateModal for the modal's state
+                      setStateModal(() {
                         dialogSelectedLeagueType = newValue;
                       });
                     },
@@ -115,7 +158,7 @@ class _StandingsPageState extends State<StandingsPage> {
 
                   await _standings.add({
                     'clubName': nameController.text,
-                    'leagueType': dialogSelectedLeagueType!.displayName, // Still saving as 'leagueType'
+                    'leagueType': dialogSelectedLeagueType!.displayName,
                     'points': int.tryParse(pointsController.text) ?? 0,
                     'wins': int.tryParse(winsController.text) ?? 0,
                     'losses': int.tryParse(lossesController.text) ?? 0,
@@ -137,25 +180,30 @@ class _StandingsPageState extends State<StandingsPage> {
 
   // Widget to build an editable number field for standings stats
   Widget _buildNumberEditableField(String docId, String field, int value, {bool isPoints = false}) {
+    // Determine if the field should be editable based on user role
+    final bool canEdit = _currentUserRole == 'Admin';
+
     return SizedBox(
       width: 50,
       child: TextFormField(
         initialValue: value.toString(),
         textAlign: TextAlign.center,
         keyboardType: TextInputType.number,
-        onFieldSubmitted: (val) {
+        readOnly: !canEdit, // Make readOnly if not admin
+        onFieldSubmitted: canEdit ? (val) {
           int parsed = int.tryParse(val) ?? 0;
-          _updateTeamField(docId, field, parsed);
+          _updateTeamField(docId, field, parsed); // This function also has a role check
           FocusScope.of(context).unfocus();
-        },
-        decoration: const InputDecoration(
+        } : null, // Set to null if not editable
+        decoration: InputDecoration(
           isDense: true,
-          contentPadding: EdgeInsets.symmetric(vertical: 4.0),
+          contentPadding: const EdgeInsets.symmetric(vertical: 4.0),
           border: InputBorder.none,
-          focusedBorder: UnderlineInputBorder(
-            borderSide: BorderSide(color: Colors.blue, width: 1.0),
-          ),
-          enabledBorder: InputBorder.none,
+          focusedBorder: canEdit ? const UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.blueAccent, width: 1.0), // Highlight focused for admin
+          ) : InputBorder.none, // No underline if not editable
+          enabledBorder: InputBorder.none, // Always no enabled border for minimalistic look
+          disabledBorder: InputBorder.none, 
         ),
         style: TextStyle(
           fontWeight: isPoints ? FontWeight.bold : FontWeight.normal,
@@ -166,19 +214,12 @@ class _StandingsPageState extends State<StandingsPage> {
     );
   }
 
-  // Still the same filtering logic, but 'leagueType' now only holds Mens/Womens
   Stream<QuerySnapshot> _getFilteredStandingsStream() {
     Query query = _standings;
-
-    // Apply league filter (now only Mens/Womens)
     query = query.where('leagueType', isEqualTo: _selectedLeagueFilter.displayName);
-
-    // Always order by points and then goalsFor
     query = query.orderBy('points', descending: true).orderBy('goalsFor', descending: true);
-
     return query.snapshots();
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -196,13 +237,14 @@ class _StandingsPageState extends State<StandingsPage> {
         ),
         title: const Text('Standings', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         centerTitle: true,
-        backgroundColor: Colors.blue[900],
+        backgroundColor: Colors.blue[900], // Darker blue for app bar
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            icon: const Icon(Icons.refresh, color: Colors.white), // Changed to refresh icon
             onPressed: () {
-              Navigator.pop(context);
+              // Simply rebuilds the widget tree, forcing StreamBuilder to potentially refresh
+              setState(() {}); 
             },
           ),
           const SizedBox(width: 8),
@@ -212,8 +254,7 @@ class _StandingsPageState extends State<StandingsPage> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(8.0),
-            // MODIFIED: Segmented button for League Filter (now only Mens/Womens)
+            padding: const EdgeInsets.all(12.0), // Increased padding
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: SegmentedButton<LeagueFilter>(
@@ -234,6 +275,8 @@ class _StandingsPageState extends State<StandingsPage> {
                   selectedForegroundColor: Colors.white,
                   selectedBackgroundColor: Colors.blue[900],
                   side: BorderSide(color: Colors.blue[900]!),
+                  textStyle: const TextStyle(fontSize: 14), // Smaller text for compactness
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), // Slightly rounded corners
                 ),
               ),
             ),
@@ -261,7 +304,7 @@ class _StandingsPageState extends State<StandingsPage> {
                           textAlign: TextAlign.center,
                           style: const TextStyle(color: Colors.grey, fontSize: 18, fontStyle: FontStyle.italic),
                         ),
-                        const Text('Tap the "+" button to add one!', style: TextStyle(color: Colors.grey, fontSize: 14)),
+                        const Text('Tap the "+" button to add one (Admins only)!', style: TextStyle(color: Colors.grey, fontSize: 14)),
                       ],
                     ),
                   );
@@ -272,7 +315,7 @@ class _StandingsPageState extends State<StandingsPage> {
                 return SingleChildScrollView(
                   padding: const EdgeInsets.all(16.0),
                   child: Card(
-                    elevation: 4.0,
+                    elevation: 6.0, // Increased elevation for card
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
                     clipBehavior: Clip.antiAlias,
                     child: Column(
@@ -280,7 +323,7 @@ class _StandingsPageState extends State<StandingsPage> {
                       children: [
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.blue[800],
+                            color: Colors.blue[800], // Slightly lighter blue for header
                             borderRadius: const BorderRadius.vertical(top: Radius.circular(12.0)),
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
@@ -386,14 +429,16 @@ class _StandingsPageState extends State<StandingsPage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _addTeamDialog(context),
-        backgroundColor: Colors.blue[700],
-        foregroundColor: Colors.white,
-        elevation: 6,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        child: const Icon(Icons.add, size: 30),
-      ),
+      floatingActionButton: _currentUserRole == 'Admin' // Only show FAB if user is Admin
+          ? FloatingActionButton(
+              onPressed: () => _addTeamDialog(context),
+              backgroundColor: Colors.blue[700],
+              foregroundColor: Colors.white,
+              elevation: 6,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              child: const Icon(Icons.add, size: 30),
+            )
+          : null, 
     );
   }
 }
