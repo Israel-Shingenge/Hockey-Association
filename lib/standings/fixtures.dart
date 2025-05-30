@@ -31,8 +31,8 @@ class FixturesPage extends StatefulWidget {
 class _FixturesPageState extends State<FixturesPage> {
   final CollectionReference _fixturesCollection =
       FirebaseFirestore.instance.collection('Fixtures');
-  final FirebaseAuth _auth = FirebaseAuth.instance; // FirebaseAuth instance
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance; // Firestore instance
+  final FirebaseAuth _auth = FirebaseAuth.instance; 
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance; 
 
   final TextEditingController _team1NameController = TextEditingController();
   final TextEditingController _team2NameController = TextEditingController();
@@ -46,27 +46,25 @@ class _FixturesPageState extends State<FixturesPage> {
   LeagueFilter _selectedLeagueFilter = LeagueFilter.all;
   LeagueType? _selectedLeagueType;
 
-  // --- Role Management from TeamPage ---
-  String? _userRole; // Changed to nullable string for initial state
+  String? _userRole; 
   bool _loadingRole = true;
 
   @override
   void initState() {
     super.initState();
-    _loadUserRole(); // Call the role loading function
-    // Listen for auth state changes to update the user role
+    _loadUserRole(); 
+
     _auth.authStateChanges().listen((User? user) {
       if (user != null) {
         _fetchUserRole(user.uid);
       } else {
         setState(() {
-          _userRole = 'player'; // No user, or logged out
+          _userRole = 'player'; 
         });
       }
     });
   }
 
-  // --- Role Management from TeamPage ---
   Future<void> _loadUserRole() async {
     print('*** _loadUserRole for FixturesPage started');
     try {
@@ -81,12 +79,12 @@ class _FixturesPageState extends State<FixturesPage> {
       }
 
       print('Fetching user role for uid: ${user.uid}');
-      await _fetchUserRole(user.uid); // Call the helper to fetch the role
+      await _fetchUserRole(user.uid); 
     } catch (e, st) {
       print('Error fetching user role: $e');
       print('Stack trace: $st');
       setState(() {
-        _userRole = 'player'; // fallback role on error
+        _userRole = 'player'; 
         _loadingRole = false;
       });
     }
@@ -95,11 +93,11 @@ class _FixturesPageState extends State<FixturesPage> {
 
   Future<void> _fetchUserRole(String uid) async {
     try {
-      final doc = await _firestore.collection('Users').doc(uid).get(); // Use _firestore instance
+      final doc = await _firestore.collection('Users').doc(uid).get(); 
       if (!doc.exists) {
         print('User document does not exist for uid: $uid');
         setState(() {
-          _userRole = 'player'; // fallback role
+          _userRole = 'player'; 
           _loadingRole = false;
         });
         return;
@@ -109,14 +107,14 @@ class _FixturesPageState extends State<FixturesPage> {
       print('Role fetched from Firestore: $role');
 
       setState(() {
-        _userRole = role ?? 'player'; // Default to player if no role found
+        _userRole = role ?? 'player'; 
         _loadingRole = false;
       });
       print('User role set to: $_userRole');
     } catch (e) {
       print("Error fetching user role: $e");
       setState(() {
-        _userRole = 'player'; // On error, default to player
+        _userRole = 'player'; 
         _loadingRole = false;
       });
     }
@@ -161,7 +159,7 @@ class _FixturesPageState extends State<FixturesPage> {
   }
 
   Future<void> _upsertFixture([DocumentSnapshot? documentSnapshot]) async {
-    // --- Admin check ---
+
     if (!_isAdmin) {
       _showSnackBar('You do not have permission to create or update fixtures.');
       return;
@@ -320,7 +318,6 @@ class _FixturesPageState extends State<FixturesPage> {
   }
 
   Future<void> _deleteFixture(String fixtureId) async {
-    // --- Admin check ---
     if (!_isAdmin) {
       _showSnackBar('You do not have permission to delete fixtures.');
       return;
@@ -331,7 +328,6 @@ class _FixturesPageState extends State<FixturesPage> {
   }
 
   Future<void> _showScoreUpdateDialog(DocumentSnapshot fixtureDocument) async {
-    // --- Admin check ---
     if (!_isAdmin) {
       _showSnackBar('You do not have permission to update scores.');
       return;
@@ -431,7 +427,6 @@ class _FixturesPageState extends State<FixturesPage> {
 
   @override
   Widget build(BuildContext context) {
-    // --- Loading state for role ---
     if (_loadingRole) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -521,7 +516,7 @@ class _FixturesPageState extends State<FixturesPage> {
                             Text('Score: $score'),
                           ],
                         ),
-                        trailing: _isAdmin // Only show action buttons if admin
+                        trailing: _isAdmin 
                             ? SizedBox(
                                 width: 150,
                                 child: Row(
@@ -542,7 +537,7 @@ class _FixturesPageState extends State<FixturesPage> {
                                   ],
                                 ),
                               )
-                            : null, // Hide if not admin
+                            : null, 
                       ),
                     );
                   },
@@ -552,13 +547,13 @@ class _FixturesPageState extends State<FixturesPage> {
           ),
         ],
       ),
-      floatingActionButton: _isAdmin // Only show FAB if admin
+      floatingActionButton: _isAdmin 
           ? FloatingActionButton(
               backgroundColor: const Color(0xFF144781),
               onPressed: () => _upsertFixture(),
               child: const Icon(Icons.add, color: Colors.white),
             )
-          : null, // Hide if not admin
+          : null, 
     );
   }
 }

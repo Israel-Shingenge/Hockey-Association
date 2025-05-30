@@ -22,7 +22,7 @@ class Article {
       title: json['title'] ?? 'No title',
       description: json['description'] ?? '',
       urlToImage: json['urlToImage'] ??
-          'https://via.placeholder.com/150', // fallback image
+          'https://via.placeholder.com/150',
       content: json['content'] ?? '',
       author: json['author'] ?? 'Unknown',
       publishedAt: json['publishedAt'] ?? '',

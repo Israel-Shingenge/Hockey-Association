@@ -49,7 +49,7 @@ class _LanguageSecurityPageState extends State<LanguageSecurityPage> {
                         border: OutlineInputBorder(),
                       ),
                       value: _selectedLanguage,
-                      items: <String>['English', 'Afrikaans', 'German'] // Add more languages as needed
+                      items: <String>['English', 'Afrikaans', 'German'] 
                           .map((String value) {
                         return DropdownMenuItem<String>(
                           value: value,
@@ -127,7 +127,6 @@ class _LanguageSecurityPageState extends State<LanguageSecurityPage> {
                         if (value == null || value.isEmpty) {
                           return 'Please enter a new password';
                         }
-                        // Add more password strength validation if needed
                         return null;
                       },
                     ),

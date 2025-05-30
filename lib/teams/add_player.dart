@@ -53,8 +53,6 @@ class _AddPlayerPageState extends State<AddPlayerPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Error: User not signed in.')),
       );
-      // Removed Navigator.of(context).pop(); to avoid pop if user is not signed in directly from this page start
-      // Consider navigating to login page or handle appropriately.
     }
   }
 
@@ -149,8 +147,6 @@ class _AddPlayerPageState extends State<AddPlayerPage> {
     }
   }
 
-  // --- START OF VISUAL IMPROVEMENTS ---
-
   Widget _buildAdminTeamSelection(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -158,10 +154,10 @@ class _AddPlayerPageState extends State<AddPlayerPage> {
           'Select Team to Add Player',
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
-        backgroundColor: const Color.fromARGB(255, 11, 71, 182), // Consistent app bar color
-        elevation: 0, // Flat app bar
+        backgroundColor: const Color.fromARGB(255, 11, 71, 182), 
+        elevation: 0, 
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white), // White back icon
+        iconTheme: const IconThemeData(color: Colors.white), 
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -224,7 +220,7 @@ class _AddPlayerPageState extends State<AddPlayerPage> {
                         },
                         child: Card(
                           margin: const EdgeInsets.only(bottom: 12.0),
-                          elevation: isSelected ? 4 : 2, // Highlight selected card
+                          elevation: isSelected ? 4 : 2, 
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                             side: isSelected
@@ -236,9 +232,8 @@ class _AddPlayerPageState extends State<AddPlayerPage> {
                             padding: const EdgeInsets.all(16.0),
                             child: Row(
                               children: [
-                                // Optional: Add a subtle icon or image placeholder
                                 Icon(
-                                  Icons.sports_hockey, // Example icon
+                                  Icons.sports_hockey, 
                                   color: isSelected ? Colors.blueAccent : Colors.grey[600],
                                   size: 30,
                                 ),
@@ -278,13 +273,11 @@ class _AddPlayerPageState extends State<AddPlayerPage> {
                 },
               ),
             ),
-            // Optional: A button to proceed after selection (if not automatic)
             if (_selectedTeamId != null)
               Padding(
                 padding: const EdgeInsets.only(top: 16.0),
                 child: ElevatedButton(
                   onPressed: () {
-                    // This triggers the form to show since _selectedTeamId is now set
                     setState(() {});
                   },
                   style: ElevatedButton.styleFrom(
@@ -305,8 +298,6 @@ class _AddPlayerPageState extends State<AddPlayerPage> {
       ),
     );
   }
-
-  // --- END OF VISUAL IMPROVEMENTS ---
 
   Widget _buildPlayerForm(BuildContext context) {
     return Scaffold(
@@ -502,9 +493,9 @@ class _AddPlayerPageState extends State<AddPlayerPage> {
                 onPressed: _addPlayer,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 15),
-                  backgroundColor: const Color.fromARGB(255, 11, 71, 182),// Use blueAccent for consistency
+                  backgroundColor: const Color.fromARGB(255, 11, 71, 182),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)), // More rounded corners
+                      borderRadius: BorderRadius.circular(10)), 
                 ),
                 child: const Text(
                   'Add Player',

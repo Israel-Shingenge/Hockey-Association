@@ -15,37 +15,32 @@ class TeamSelectionPage extends StatefulWidget {
 class _TeamSelectionPageState extends State<TeamSelectionPage> {
   List<DocumentSnapshot> _userTeams = [];
   final Map<String, File?> _localLogos = {};
-  // Add a flag to prevent multiple loads of local logos
   bool _localLogosLoadedForCurrentTeams = false;
 
   @override
   void initState() {
     super.initState();
-    // Initial loading of logos will now happen after the first stream data
-    // _loadLocalLogos(); // Removed from here as _userTeams is initially empty
   }
 
   // Modified to take a list of teams, so it can be called when data is available
   Future<void> _loadLocalLogos(List<DocumentSnapshot> teams) async {
-    if (teams.isEmpty) return; // No teams to load logos for
+    if (teams.isEmpty) return; 
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    // Create a temporary map to build new logos
     final Map<String, File?> newLocalLogos = {}; 
 
     for (var team in teams) {
       final teamData = team.data() as Map<String, dynamic>;
       final clubName = teamData['clubName'];
-      // Only load if not already in _localLogos or if path changed
       if (clubName != null && !_localLogos.containsKey(clubName)) {
         final logoPath = prefs.getString('team_logo_$clubName');
         if (logoPath != null && File(logoPath).existsSync()) {
           newLocalLogos[clubName] = File(logoPath);
         } else {
-          newLocalLogos[clubName] = null; // Mark as null if no local logo
+          newLocalLogos[clubName] = null; 
         }
       } else if (clubName != null && _localLogos.containsKey(clubName)) {
-        newLocalLogos[clubName] = _localLogos[clubName]; // Keep existing if present
+        newLocalLogos[clubName] = _localLogos[clubName]; 
       }
     }
 
@@ -57,13 +52,12 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
         _localLogosLoadedForCurrentTeams = true; // Set flag
       });
     } else if (newLocalLogos.isEmpty && _localLogos.isNotEmpty) {
-       // If no local logos found for new teams and _localLogos was previously populated, clear it.
        setState(() {
         _localLogos.clear();
         _localLogosLoadedForCurrentTeams = true;
        });
     } else {
-      _localLogosLoadedForCurrentTeams = true; // Even if no new logos, mark as loaded
+      _localLogosLoadedForCurrentTeams = true; 
     }
   }
 
@@ -99,8 +93,6 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
         ),
       ),
     ).then((_) {
-        // After returning from EditTeamPage, reload logos for the *current* teams
-        // This ensures any logo changes made in EditTeamPage are reflected.
         _loadLocalLogos(_userTeams); 
     });
   }
@@ -113,7 +105,7 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(), // Navigate back
+          onPressed: () => Navigator.of(context).pop(), 
         ),
         title: Center(
           child: SizedBox(
@@ -173,13 +165,10 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
                   }
                   return const Center(child: Text('No teams available.'));
                 } else {
-                  // Update _userTeams list
                   _userTeams = snapshot.data!.docs;
 
-                  // Only load local logos if they haven't been loaded for the current set of teams
-                  // This is a simple flag-based debounce. More complex solutions exist for large lists.
                   if (!_localLogosLoadedForCurrentTeams || _userTeams.length != _localLogos.length) {
-                    _localLogosLoadedForCurrentTeams = false; // Reset if team count changes, indicating a new load might be needed
+                    _localLogosLoadedForCurrentTeams = false;
                     _loadLocalLogos(_userTeams);
                   }
 
@@ -189,7 +178,7 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
                       final team = _userTeams[index];
                       final teamData = team.data() as Map<String, dynamic>;
                       final clubName = teamData['clubName'] ?? 'Unnamed Club';
-                      final logoFile = _localLogos[clubName]; // Access local logo from the map
+                      final logoFile = _localLogos[clubName]; 
 
                       return ListTile(
                         leading: CircleAvatar(

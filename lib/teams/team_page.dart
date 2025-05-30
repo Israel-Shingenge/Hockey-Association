@@ -24,8 +24,8 @@ class _TeamPageState extends State<TeamPage> {
   final Map<String, String?> _profileImageCache = {};
 
   String? _userRole;
-  String? _currentUserTeamId; // Stores the document ID of the manager's team
-  bool _loadingRoleAndTeam = true; // Combined loading state
+  String? _currentUserTeamId;
+  bool _loadingRoleAndTeam = true; 
 
   @override
   void initState() {
@@ -54,7 +54,7 @@ class _TeamPageState extends State<TeamPage> {
       if (!userDoc.exists) {
         print('User document does not exist for uid: ${user.uid}. Defaulting to player.');
         setState(() {
-          _userRole = 'player'; // fallback role
+          _userRole = 'player'; 
           _loadingRoleAndTeam = false;
         });
         return;
@@ -64,27 +64,26 @@ class _TeamPageState extends State<TeamPage> {
       print('Role fetched from Firestore: $role');
 
       setState(() {
-        _userRole = role ?? 'player'; // Default to player if no role found
+        _userRole = role ?? 'player'; 
       });
 
-      // 2. If Manager, fetch their team ID
       if (_userRole == 'Manager') {
         print('User is a Manager. Fetching their team ID...');
         final teamSnapshot = await FirebaseFirestore.instance
             .collection('Teams')
             .where('managerFirebaseUid', isEqualTo: user.uid)
-            .limit(1) // Assuming one manager per team
+            .limit(1) 
             .get();
 
         if (teamSnapshot.docs.isNotEmpty) {
-          _currentUserTeamId = teamSnapshot.docs.first.id; // Get the document ID
+          _currentUserTeamId = teamSnapshot.docs.first.id; 
           print('Manager team ID found: $_currentUserTeamId');
         } else {
           print('No team found for manager with UID: ${user.uid}');
-          _currentUserTeamId = null; // No team found for this manager
+          _currentUserTeamId = null; 
         }
       } else {
-        _currentUserTeamId = null; // Not applicable for Admin or Player
+        _currentUserTeamId = null; 
       }
 
       setState(() {
@@ -95,7 +94,7 @@ class _TeamPageState extends State<TeamPage> {
       print('Error fetching user role or team: $e');
       print('Stack trace: $st');
       setState(() {
-        _userRole = 'player'; // fallback role on error
+        _userRole = 'player'; 
         _loadingRoleAndTeam = false;
       });
     }
@@ -103,9 +102,6 @@ class _TeamPageState extends State<TeamPage> {
   }
 
   Future<void> _loadAllPlayerImages() async {
-    // This method might need adjustment if you want to only cache images for the current team
-    // or if image URLs are stored directly in Firestore and not SharedPreferences.
-    // For now, keeping it as is, assuming it works globally.
     final prefs = await SharedPreferences.getInstance();
     final snapshot = await FirebaseFirestore.instance.collection('Player').get();
     if (!mounted) return;
@@ -119,22 +115,19 @@ class _TeamPageState extends State<TeamPage> {
   }
 
   void _showAddPlayerPage() {
-    // Only navigate if a team ID is available for managers, or if Admin
     if (_userRole == 'Admin' || (_userRole == 'Manager' && _currentUserTeamId != null)) {
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => AddPlayerPage(
-            teamId: _currentUserTeamId, // Pass the teamId, will be null for Admin, handled in AddPlayerPage
+            teamId: _currentUserTeamId, 
           ),
         ),
       ).then((_) {
-        // Reload images and re-evaluate roles/teams after returning
         _loadAllPlayerImages();
         _loadUserRoleAndTeam();
       });
     } else {
-      // Potentially show a snackbar for managers who don't have a team yet
       if (_userRole == 'Manager' && _currentUserTeamId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please create your team first to add players.')),
@@ -239,7 +232,6 @@ class _TeamPageState extends State<TeamPage> {
       drawer: const HomeDrawer(),
       body: Column(
         children: [
-          // Show "Add Your Team" card only for Admin or Manager
           if (_userRole == 'Admin' || (_userRole == 'Manager' && _currentUserTeamId != null))
             Card(
               margin: const EdgeInsets.all(16.0),
@@ -311,14 +303,14 @@ class _TeamPageState extends State<TeamPage> {
                   : (_userRole == 'Manager' && _currentUserTeamId != null)
                       ? FirebaseFirestore.instance
                           .collection('Player')
-                          .where('teamId', isEqualTo: _currentUserTeamId) // Filter by teamId
+                          .where('teamId', isEqualTo: _currentUserTeamId) 
                           .orderBy(_sortBy, descending: _sortDescending)
                           .snapshots()
                       : (_userRole == 'Player' && FirebaseAuth.instance.currentUser != null)
                           ? FirebaseFirestore.instance
                               .collection('Player')
-                              .where('firebaseAuthUid', isEqualTo: FirebaseAuth.instance.currentUser!.uid) // Player sees their own profile
-                              .orderBy(_sortBy, descending: _sortDescending) // Still sort if fetching own profile
+                              .where('firebaseAuthUid', isEqualTo: FirebaseAuth.instance.currentUser!.uid) 
+                              .orderBy(_sortBy, descending: _sortDescending) 
                               .snapshots()
                           : Stream.empty(), // No stream for unauthenticated or non-team-associated players
               builder: (context, snapshot) {
@@ -422,7 +414,6 @@ class _TeamPageState extends State<TeamPage> {
       Map<String, dynamic> playerData,
       String? profileImagePath,
       ) {
-    // Admin & Manager can open player details, Players can only open their own if linked
     final currentUserUid = FirebaseAuth.instance.currentUser?.uid;
     final bool isPlayerSelf = _userRole == 'Player' && playerData['firebaseAuthUid'] == currentUserUid;
     final bool canViewDetails = _userRole == 'Admin' || _userRole == 'Manager' || isPlayerSelf;
@@ -441,7 +432,7 @@ class _TeamPageState extends State<TeamPage> {
             ),
           ),
         );
-        _loadAllPlayerImages(); // Reload images after returning
+        _loadAllPlayerImages(); 
       }
           : null,
       child: Container(

@@ -16,6 +16,7 @@ class _NewsPageState extends State<NewsPage> {
 
   final List<String> categories = [
     'general',
+    'hockey',
     'business',
     'entertainment',
     'health',

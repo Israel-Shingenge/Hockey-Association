@@ -69,7 +69,7 @@ class _EditTeamPopupState extends State<EditTeamPopup> {
             alignment: Alignment.center,
             children: [
               Image.asset(
-                'assets/images/NHU.png', // Placeholder for team logo
+                'assets/images/NHU.png', 
                 height: 80,
               ),
               Positioned(

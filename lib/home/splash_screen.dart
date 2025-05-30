@@ -1,4 +1,3 @@
-// lib/splash_screen.dart
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'welcome_screen.dart'; 
@@ -14,7 +13,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Timer(const Duration(seconds: 3), () {
+    Timer(const Duration(seconds: 5), () {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const WelcomeScreen()),

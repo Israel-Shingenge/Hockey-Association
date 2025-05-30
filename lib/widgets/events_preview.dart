@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import 'package:hockey_union/events/view_events.dart'; 
+import 'package:hockey_union/events/view_events.dart'; // Make sure this imports EventDetailPage as well, or adjust
 
 class EventsPreviewCard extends StatelessWidget {
   const EventsPreviewCard({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Define the Firestore collection reference once.
     final CollectionReference eventsCollection =
         FirebaseFirestore.instance.collection('events');
 
     // Calculate the start of today for filtering upcoming events.
-    final DateTime today = DateTime.now().startOfDay; // Using a convenient extension
+    final DateTime today = DateTime.now().startOfDay;
 
     return Card(
       elevation: 4,
@@ -22,9 +21,10 @@ class EventsPreviewCard extends StatelessWidget {
       child: InkWell(
         onTap: () {
           // Navigate to the full events listing page.
+          // Assuming EventDetailPage is the main view for all events, or you have a dedicated EventsListPage
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const EventDetailPage()),
+            MaterialPageRoute(builder: (context) => const EventDetailPage()), // Or your main EventsList/Calendar page
           );
         },
         borderRadius: BorderRadius.circular(12),
@@ -33,27 +33,26 @@ class EventsPreviewCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const SizedBox(height: 12),
               StreamBuilder<QuerySnapshot>(
                 // Fetch upcoming events, ordered by date and limited to 3.
                 stream: eventsCollection
                     .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(today))
-                    .orderBy('date') // Default to ascending for upcoming events
+                    .orderBy('date')
                     .limit(3)
                     .snapshots(),
                 builder: (context, snapshot) {
                   // Handle different connection states and errors.
                   if (snapshot.hasError) {
-                    return _buildMessage('Error loading events: ${snapshot.error}',
-                        color: Colors.red);
+                    return _buildErrorState(context, snapshot.error.toString());
                   }
 
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const _LoadingIndicator();
                   }
 
-                  // If no upcoming events, display a message.
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return _buildMessage('No upcoming events scheduled.');
+                    return _buildEmptyState(context);
                   }
 
                   // Display the list of upcoming events.
@@ -117,14 +116,70 @@ class EventsPreviewCard extends StatelessWidget {
     );
   }
 
-  // Helper method for displaying messages (errors, no data).
-  Widget _buildMessage(String message, {Color color = Colors.grey}) {
+  Widget _buildEmptyState(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 20.0),
       child: Center(
-        child: Text(
-          message,
-          style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: color),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.event_note_outlined, // A fitting icon for no events
+              size: 60,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'No upcoming events scheduled.',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Colors.grey[600],
+                    fontStyle: FontStyle.italic,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 5),
+            Text(
+              'Stay tuned for exciting new announcements!',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.grey[500],
+                  ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(BuildContext context, String error) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 20.0),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 60,
+              color: Colors.red[300],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Oops! Could not load events.',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Colors.red[600],
+                  ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 5),
+            Text(
+              'Error: $error', // Show error in debug, or a generic message
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.red[400],
+                  ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );
@@ -140,7 +195,7 @@ class _LoadingIndicator extends StatelessWidget {
     return const Center(
       child: Padding(
         padding: EdgeInsets.symmetric(vertical: 20.0),
-        child: CircularProgressIndicator(),
+        child: CircularProgressIndicator(strokeWidth: 2), // Consistent stroke width
       ),
     );
   }
@@ -174,8 +229,8 @@ class _EventImage extends StatelessWidget {
     return Container(
       height: 60,
       width: 60,
-      color: Colors.grey[300],
-      child: const Icon(Icons.event, color: Colors.grey),
+      color: Colors.grey[200], // Lighter grey for placeholder background
+      child: Icon(Icons.event, color: Colors.grey[500], size: 36), // Slightly darker grey for icon
     );
   }
 }

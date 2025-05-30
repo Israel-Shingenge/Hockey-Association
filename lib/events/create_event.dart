@@ -39,7 +39,6 @@ class EventsPage extends StatelessWidget {
       body: SingleChildScrollView( 
         child: Column(
           children: <Widget>[
-            // Large Image Card
             Card(
               margin: const EdgeInsets.all(16.0),
               clipBehavior: Clip.antiAlias, 
@@ -54,7 +53,6 @@ class EventsPage extends StatelessWidget {
               ),
             ),
             
-            // Text Content
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 16.0),
               child: Column(
@@ -81,7 +79,6 @@ class EventsPage extends StatelessWidget {
               ),
             ),
 
-            // Buttons
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
               child: Row(
@@ -96,7 +93,7 @@ class EventsPage extends StatelessWidget {
                         );
                       },
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.blue), // Blue border
+                        side: const BorderSide(color: Colors.blue), 
                         padding: const EdgeInsets.symmetric(vertical: 14.0),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
                       ),
@@ -106,7 +103,7 @@ class EventsPage extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 16.0), // Space between buttons
+                  const SizedBox(width: 16.0), 
                 ],
               ),
             ),

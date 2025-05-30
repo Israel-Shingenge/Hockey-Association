@@ -348,7 +348,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
               ),
               IconButton(
                 icon: const Icon(Icons.info_outline),
-                onPressed: () => _toggleEventDetailsPopup(event), // No need to pass _currentView here
+                onPressed: () => _toggleEventDetailsPopup(event), 
               ),
             ],
           ),
@@ -505,7 +505,6 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   child: Center(
                     child: GestureDetector(
                       onTap: () {
-                        // Prevents the popup from closing when tapping inside
                       },
                       child: Container(
                         width: 300,
@@ -535,8 +534,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                 Text('Notes: ${selectedEvent!['notes'] ?? 'No notes'}'),
                                 Text('Duration: ${selectedEvent!['duration'] ?? 'N/A'}'),
                                 const SizedBox(height: 16),
-                                // Conditional rendering of Register/Unregister/Delete button based on role and view
-                                if (_isAdmin || _isManager) // Admin and Manager can register/unregister
+                                if (_isAdmin || _isManager) 
                                   if (isRegistered)
                                     ElevatedButton(
                                       onPressed: () => _unregisterFromEvent(selectedEvent!['id']),
@@ -549,7 +547,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                       onPressed: () => _registerForEvent(selectedEvent!['id']),
                                       child: const Text('Register for this event'),
                                     ),
-                                if (_isAdmin) // Only Admin can delete
+                                if (_isAdmin) 
                                   Padding(
                                     padding: const EdgeInsets.only(top: 8.0),
                                     child: ElevatedButton(

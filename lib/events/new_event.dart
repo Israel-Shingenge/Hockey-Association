@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-// Nominatim service & model inside the same file for simplicity
 class NominatimService {
   static const String _baseUrl = 'https://nominatim.openstreetmap.org/search';
 
@@ -14,7 +13,7 @@ class NominatimService {
     );
 
     final response = await http.get(url, headers: {
-      'User-Agent': 'HockeyUnion - israelrshingene@gmail.com', // Replace with your details
+      'User-Agent': 'HockeyUnion - israelrshingene@gmail.com',  
     });
 
     if (response.statusCode == 200) {

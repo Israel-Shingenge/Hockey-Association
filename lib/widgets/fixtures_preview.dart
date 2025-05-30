@@ -2,14 +2,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hockey_union/standings/fixtures.dart';
-import 'package:intl/intl.dart'; 
+import 'package:intl/intl.dart';
 
 class FixturesPreviewCard extends StatelessWidget {
   const FixturesPreviewCard({super.key});
 
-  // Helper to get logo path from team name
   String _getTeamLogoPath(String teamName) {
-    // Ensure the team name matches your file naming convention (e.g., "Team Name" -> "TeamName.png")
     final formattedTeamName = teamName.replaceAll(' ', '');
     return 'assets/images/$formattedTeamName.png';
   }
@@ -33,29 +31,66 @@ class FixturesPreviewCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const SizedBox(height: 12),
               StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
-                    .collection('Fixtures') // Ensure 'Fixtures' is correct
+                    .collection('Fixtures')
                     .where('timestamp', isGreaterThanOrEqualTo: Timestamp.now())
                     .orderBy('timestamp', descending: false)
-                    .limit(3) // Limit to 3 for preview
+                    .limit(3)
                     .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
                     if (kDebugMode) {
                       print("Fixtures Stream Error: ${snapshot.error}");
                     }
-                    return const Text('Error loading fixtures.',
-                        style: TextStyle(color: Colors.red));
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20.0),
+                      child: Center(
+                          child: Text('Error loading fixtures. Please try again later.',
+                              style: TextStyle(color: Colors.red))),
+                    );
                   }
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                        child: CircularProgressIndicator(strokeWidth: 2));
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20.0),
+                      child: Center(
+                          child: CircularProgressIndicator(strokeWidth: 2)),
+                    );
                   }
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return const Center(
-                        child: Text('No upcoming fixtures.',
-                            style: TextStyle(color: Colors.grey)));
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 20.0),
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.event_busy_outlined, // A calendar or clock icon
+                              size: 60,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              'No upcoming games scheduled.',
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    color: Colors.grey[600],
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              'Check back soon for new matchups!',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Colors.grey[500],
+                                  ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
                   }
 
                   final fixtures = snapshot.data!.docs;
@@ -102,7 +137,7 @@ class FixturesPreviewCard extends StatelessWidget {
                         final timeString = fixture['time'] ?? '';
                         try {
                           fixtureDateTime = DateFormat('yyyy-MM-dd HH:mm')
-                              .parse('$dateString $timeString'); // Assuming 24-hour format
+                              .parse('$dateString $timeString');
                           displayTime = DateFormat('hh:mm a').format(fixtureDateTime);
                           final now = DateTime.now();
                           final today = DateTime(now.year, now.month, now.day);
@@ -130,7 +165,6 @@ class FixturesPreviewCard extends StatelessWidget {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            // Team 1 Logo and Name
                             Expanded(
                               flex: 3,
                               child: Row(
@@ -145,7 +179,7 @@ class FixturesPreviewCard extends StatelessWidget {
                                             size: 30, color: Colors.grey),
                                   ),
                                   const SizedBox(width: 8),
-                                  Flexible( // Use Flexible to prevent overflow
+                                  Flexible(
                                     child: Text(
                                       team1Name,
                                       style: const TextStyle(
@@ -156,7 +190,6 @@ class FixturesPreviewCard extends StatelessWidget {
                                 ],
                               ),
                             ),
-                            // Time/Date in Middle
                             Expanded(
                               flex: 2,
                               child: Column(
@@ -166,13 +199,12 @@ class FixturesPreviewCard extends StatelessWidget {
                                 ],
                               ),
                             ),
-                            // Team 2 Logo and Name
                             Expanded(
                               flex: 3,
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
-                                  Flexible( // Use Flexible to prevent overflow
+                                  Flexible(
                                     child: Text(
                                       team2Name,
                                       style: const TextStyle(

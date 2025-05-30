@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hockey_union/home/home_drawer.dart'; 
 import 'package:firebase_auth/firebase_auth.dart'; 
 
-// MODIFIED: LeagueType enum to only include Mens and Womens Division
 enum LeagueType {
   mensDivision('Mens Division'),
   womensDivision('Womens Division');
@@ -12,7 +11,6 @@ enum LeagueType {
   const LeagueType(this.displayName);
 }
 
-// MODIFIED: LeagueFilter enum to only include Mens and Womens Division
 enum LeagueFilter {
   mensDivision('Mens Division'),
   womensDivision('Womens Division');
@@ -30,14 +28,14 @@ class StandingsPage extends StatefulWidget {
 
 class _StandingsPageState extends State<StandingsPage> {
   final CollectionReference _standings = FirebaseFirestore.instance.collection('Standings');
-  LeagueFilter _selectedLeagueFilter = LeagueFilter.mensDivision; // Default to Mens Division
+  LeagueFilter _selectedLeagueFilter = LeagueFilter.mensDivision; 
 
-  String? _currentUserRole; // To store the role of the current user
+  String? _currentUserRole; 
 
   @override
   void initState() {
     super.initState();
-    _fetchCurrentUserRole(); // Fetch user role on page load
+    _fetchCurrentUserRole(); 
   }
 
   // Fetches the role of the currently logged-in user
@@ -51,15 +49,12 @@ class _StandingsPageState extends State<StandingsPage> {
         });
       }
     } else {
-      // If no user is logged in, default to a role that cannot edit
       setState(() {
         _currentUserRole = 'Guest';
       });
     }
   }
 
-  // Function to update a specific field for a team in the standings
-  // Now includes a role check
   Future<void> _updateTeamField(String docId, String field, dynamic value) async {
     if (_currentUserRole == 'Admin') {
       await _standings.doc(docId).update({field: value});
@@ -70,8 +65,6 @@ class _StandingsPageState extends State<StandingsPage> {
     }
   }
 
-  // Dialog to add a new team to the standings
-  // Now includes a role check before showing
   Future<void> _addTeamDialog(BuildContext context) async {
     if (_currentUserRole != 'Admin') {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -189,20 +182,20 @@ class _StandingsPageState extends State<StandingsPage> {
         initialValue: value.toString(),
         textAlign: TextAlign.center,
         keyboardType: TextInputType.number,
-        readOnly: !canEdit, // Make readOnly if not admin
+        readOnly: !canEdit, 
         onFieldSubmitted: canEdit ? (val) {
           int parsed = int.tryParse(val) ?? 0;
-          _updateTeamField(docId, field, parsed); // This function also has a role check
+          _updateTeamField(docId, field, parsed); 
           FocusScope.of(context).unfocus();
-        } : null, // Set to null if not editable
+        } : null, 
         decoration: InputDecoration(
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(vertical: 4.0),
           border: InputBorder.none,
           focusedBorder: canEdit ? const UnderlineInputBorder(
-            borderSide: BorderSide(color: Colors.blueAccent, width: 1.0), // Highlight focused for admin
-          ) : InputBorder.none, // No underline if not editable
-          enabledBorder: InputBorder.none, // Always no enabled border for minimalistic look
+            borderSide: BorderSide(color: Colors.blueAccent, width: 1.0), 
+          ) : InputBorder.none, 
+          enabledBorder: InputBorder.none, 
           disabledBorder: InputBorder.none, 
         ),
         style: TextStyle(
@@ -237,13 +230,12 @@ class _StandingsPageState extends State<StandingsPage> {
         ),
         title: const Text('Standings', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         centerTitle: true,
-        backgroundColor: Colors.blue[900], // Darker blue for app bar
+        backgroundColor: Colors.blue[900], 
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white), // Changed to refresh icon
+            icon: const Icon(Icons.refresh, color: Colors.white), 
             onPressed: () {
-              // Simply rebuilds the widget tree, forcing StreamBuilder to potentially refresh
               setState(() {}); 
             },
           ),
@@ -254,7 +246,7 @@ class _StandingsPageState extends State<StandingsPage> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(12.0), // Increased padding
+            padding: const EdgeInsets.all(12.0),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: SegmentedButton<LeagueFilter>(
@@ -275,8 +267,8 @@ class _StandingsPageState extends State<StandingsPage> {
                   selectedForegroundColor: Colors.white,
                   selectedBackgroundColor: Colors.blue[900],
                   side: BorderSide(color: Colors.blue[900]!),
-                  textStyle: const TextStyle(fontSize: 14), // Smaller text for compactness
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), // Slightly rounded corners
+                  textStyle: const TextStyle(fontSize: 14), 
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), 
                 ),
               ),
             ),
@@ -315,7 +307,7 @@ class _StandingsPageState extends State<StandingsPage> {
                 return SingleChildScrollView(
                   padding: const EdgeInsets.all(16.0),
                   child: Card(
-                    elevation: 6.0, // Increased elevation for card
+                    elevation: 6.0, 
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
                     clipBehavior: Clip.antiAlias,
                     child: Column(
@@ -323,7 +315,7 @@ class _StandingsPageState extends State<StandingsPage> {
                       children: [
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.blue[800], // Slightly lighter blue for header
+                            color: Colors.blue[800],
                             borderRadius: const BorderRadius.vertical(top: Radius.circular(12.0)),
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
@@ -429,7 +421,7 @@ class _StandingsPageState extends State<StandingsPage> {
           ),
         ],
       ),
-      floatingActionButton: _currentUserRole == 'Admin' // Only show FAB if user is Admin
+      floatingActionButton: _currentUserRole == 'Admin' 
           ? FloatingActionButton(
               onPressed: () => _addTeamDialog(context),
               backgroundColor: Colors.blue[700],

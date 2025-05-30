@@ -74,13 +74,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
           'email': _emailController.text,
           'phone': _phoneController.text,
           'gender': _selectedGender,
-          // Note: Profile image is local only, no upload here
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profile updated successfully!')),
         );
-        // Pass back the local image when popping
         Navigator.pop(context, _localProfileImage);
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(

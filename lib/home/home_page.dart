@@ -46,10 +46,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> signOut() async {
-    await Auth().signOut();
-  }
-
   void _navigateToLeagueSelection() {
     Navigator.push(
       context,
@@ -204,7 +200,6 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            // Removed the ListView containing 'Mens Division' and 'Womens Division' buttons
             const SizedBox(height: 16),
             const SizedBox(height: 8),
             SizedBox(
@@ -340,20 +335,6 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 24),
             Align(
               alignment: Alignment.center,
-              child: OutlinedButton.icon(
-                onPressed: signOut,
-                icon: const Icon(Icons.logout, color: Colors.blueAccent),
-                label: const Text('Sign Out',
-                    style: TextStyle(color: Colors.blueAccent)),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Colors.blueAccent),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                ),
-              ),
             ),
             const SizedBox(height: 24),
           ],

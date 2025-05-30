@@ -38,13 +38,11 @@ class _CreateTeamPageState extends State<CreateTeamPage> {
           'email': _emailController.text.trim(),
           'phoneNumber': _phoneNumberController.text.trim(),
           'clubDescription': _clubDescriptionController.text.trim(),
-          'managerFirebaseUid': uid, // Renamed 'uid' to 'managerFirebaseUid' here
+          'managerFirebaseUid': uid, 
           'createdAt': FieldValue.serverTimestamp(),
           'logoUrl': null, 
         });
 
-        // This 'creatorInfo' subcollection might be redundant if 'managerFirebaseUid' is enough.
-        // If you need more complex auditing, keep it. Otherwise, you can remove it.
         await teamRef.collection('creatorInfo').doc('details').set({
           'createdByUid': uid,
           'createdAt': FieldValue.serverTimestamp(),

@@ -25,7 +25,7 @@ class PlayerProfilePage extends StatefulWidget {
 class _PlayerProfilePageState extends State<PlayerProfilePage> {
   DocumentReference? _playerDocRef;
   bool _isPlayerIdValid = true;
-  String? _profileImagePath; // State variable to store the image path
+  String? _profileImagePath; 
 
   @override
   void initState() {
@@ -47,7 +47,7 @@ class _PlayerProfilePageState extends State<PlayerProfilePage> {
       debugPrint('PlayerProfilePage: Detected empty playerId. Will not initialize Firestore query.');
     } else {
       _playerDocRef = FirebaseFirestore.instance.collection('Player').doc(widget.playerId);
-      _loadImage(); // Load the profile image when the page initializes
+      _loadImage(); 
     }
   }
 
@@ -66,7 +66,7 @@ class _PlayerProfilePageState extends State<PlayerProfilePage> {
 
     if (pickedFile != null) {
       final appDir = await getApplicationDocumentsDirectory();
-      final fileName = '${widget.playerId}_profile.png'; // Consistent filename per player
+      final fileName = '${widget.playerId}_profile.png'; 
       final localImage = await File(pickedFile.path).copy('${appDir.path}/$fileName');
 
       final prefs = await SharedPreferences.getInstance();
@@ -98,12 +98,12 @@ class _PlayerProfilePageState extends State<PlayerProfilePage> {
     if (imagePath != null) {
       final File imageFile = File(imagePath);
       if (await imageFile.exists()) {
-        await imageFile.delete(); // Delete the file from local storage
+        await imageFile.delete(); 
       }
-      await prefs.remove('profile_image_${widget.playerId}'); // Remove path from SharedPreferences
+      await prefs.remove('profile_image_${widget.playerId}'); 
 
       setState(() {
-        _profileImagePath = null; // Clear the image path
+        _profileImagePath = null; 
       });
 
       if (mounted) {
@@ -341,17 +341,16 @@ class _PlayerProfilePageState extends State<PlayerProfilePage> {
               children: <Widget>[
                 // Profile Picture and Player Info Container
                 Container(
-                  color: Colors.blue[900], // Keep the blue background
+                  color: Colors.blue[900], 
                   padding: const EdgeInsets.all(16.0),
                   height: 160.0,
-                  child: Row( // Direct Row
+                  child: Row( 
                     children: <Widget>[
                       GestureDetector(
                         onTap: () {
-                          // Show options to pick or remove image as a dialog
                           showDialog(
                             context: context,
-                            builder: (BuildContext dialogContext) { // Use a different context name to avoid conflict
+                            builder: (BuildContext dialogContext) { 
                               return AlertDialog(
                                 title: const Text('Profile Picture'),
                                 content: Column(
@@ -362,16 +361,16 @@ class _PlayerProfilePageState extends State<PlayerProfilePage> {
                                       title: const Text('Choose Photo'),
                                       onTap: () {
                                         _pickAndSaveImage();
-                                        Navigator.of(dialogContext).pop(); // Pop the dialog
+                                        Navigator.of(dialogContext).pop(); 
                                       },
                                     ),
-                                    if (_profileImagePath != null) // Show remove option only if image exists
+                                    if (_profileImagePath != null)
                                       ListTile(
                                         leading: const Icon(Icons.delete),
                                         title: const Text('Remove Photo'),
                                         onTap: () {
                                           _removeProfileImage();
-                                          Navigator.of(dialogContext).pop(); // Pop the dialog
+                                          Navigator.of(dialogContext).pop(); 
                                         },
                                       ),
                                   ],
@@ -385,7 +384,7 @@ class _PlayerProfilePageState extends State<PlayerProfilePage> {
                           // Conditionally set background color only when no image
                           backgroundColor: _profileImagePath == null
                               ? Colors.white.withOpacity(0.2)
-                              : Colors.transparent, // Make transparent when image is present
+                              : Colors.transparent, 
                           child: _profileImagePath == null
                               ? const Icon(Icons.person, size: 40.0, color: Colors.white)
                               : ClipOval(
@@ -459,8 +458,8 @@ class _PlayerProfilePageState extends State<PlayerProfilePage> {
 
                
                Center(
-                  child: SizedBox( // Wrap with SizedBox
-                    width: double.infinity, // Make it take full width
+                  child: SizedBox( 
+                    width: double.infinity, 
                       child: ElevatedButton.icon(
                       onPressed: () => _addToContacts(playerData),
                       icon: const Icon(Icons.contact_phone),

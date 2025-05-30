@@ -11,7 +11,7 @@ class NominatimService {
     );
 
     final response = await http.get(url, headers: {
-      'User-Agent': 'Hockey Union - israelrshingenge@gmail.com'  // Replace with your info
+      'User-Agent': 'Hockey Union - israelrshingenge@gmail.com'  
     });
 
     if (response.statusCode == 200) {

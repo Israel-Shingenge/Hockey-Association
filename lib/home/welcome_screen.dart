@@ -14,9 +14,9 @@ class WelcomeScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             Image.asset(
-              'assets/images/NHU.png', // Same logo as splash screen
-              width: 150, // Adjust as needed
-              height: 150, // Adjust as needed
+              'assets/images/NHU.png', 
+              width: 150, 
+              height: 150, 
             ),
             const SizedBox(height: 40),
             SizedBox(
@@ -30,7 +30,7 @@ class WelcomeScreen extends StatelessWidget {
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF303F9F),
-                padding: const EdgeInsets.symmetric(vertical: 15), // Remove horizontal padding
+                padding: const EdgeInsets.symmetric(vertical: 15), 
                 textStyle: const TextStyle(fontSize: 18),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8.0),
@@ -54,7 +54,7 @@ class WelcomeScreen extends StatelessWidget {
               child: const Text(
                 'ALREADY HAVE AN ACCOUNT?',
                 style: TextStyle(
-                  color: Color(0xFF303F9F), // Match the text color
+                  color: Color(0xFF303F9F),
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),

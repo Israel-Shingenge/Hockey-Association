@@ -56,7 +56,6 @@ class _EventTeamsPageState extends State<EventTeamsPage> {
         ? dateRaw
         : (dateRaw?.toDate() ?? DateTime.now());
 
-    // Get the event ID
     final String eventId = widget.event['id'];
 
     return Scaffold(
@@ -82,7 +81,6 @@ class _EventTeamsPageState extends State<EventTeamsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Event Info Card
             Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
@@ -135,7 +133,6 @@ class _EventTeamsPageState extends State<EventTeamsPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // StreamBuilder for dynamic participant count
                       StreamBuilder<int>(
                         stream: _getRegistrationCountStream(eventId),
                         builder: (context, snapshot) {
@@ -143,7 +140,7 @@ class _EventTeamsPageState extends State<EventTeamsPage> {
                             return const CircularProgressIndicator(
                               color: Colors.white,
                               strokeWidth: 2,
-                            ); // Show loading
+                            ); 
                           }
                           if (snapshot.hasError) {
                             return Text(
@@ -203,7 +200,6 @@ class _EventTeamsPageState extends State<EventTeamsPage> {
 
             const SizedBox(height: 28),
 
-            // Sort & Teams Header Row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -256,7 +252,6 @@ class _EventTeamsPageState extends State<EventTeamsPage> {
 
             const SizedBox(height: 12),
 
-            // Teams List
             ListView.separated(
               physics: const NeverScrollableScrollPhysics(),
               shrinkWrap: true,
@@ -270,7 +265,6 @@ class _EventTeamsPageState extends State<EventTeamsPage> {
                   child: InkWell(
                     borderRadius: BorderRadius.circular(12),
                     onTap: () {
-                      // Handle team tap if needed
                     },
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),

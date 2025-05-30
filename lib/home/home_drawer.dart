@@ -12,7 +12,7 @@ class HomeDrawer extends StatelessWidget {
   Color _hexToColor(String hexColor) {
     hexColor = hexColor.toUpperCase().replaceAll("#", "");
     if (hexColor.length == 6) {
-      hexColor = "FF$hexColor"; // Add opacity if missing
+      hexColor = "FF$hexColor";
     }
     return Color(int.parse(hexColor, radix: 16));
   }
