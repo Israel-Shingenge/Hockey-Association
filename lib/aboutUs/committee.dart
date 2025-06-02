@@ -37,19 +37,20 @@ class CommitteePage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
         Stack(
-            alignment: Alignment.center, // Align the children of the Stack to the center
+            alignment: Alignment.center, 
             children: <Widget>[
               Image.asset(
-                'assets/images/commitee.png', // Replace with the actual URL of the banner image
+                'assets/images/commitee.png', 
                 fit: BoxFit.cover,
-                height: 150, // Adjust height as needed
+                height: 150, 
                 width: double.infinity,
               ),
-              Positioned( // Use Positioned to fine-tune the text's position
-                bottom: 60.0, // Adjust this value to move the text up or down
+              Positioned( 
+                bottom: 60.0, 
                 child: Container(
                   padding: const EdgeInsets.all(8.0),
                   decoration: BoxDecoration(
+                    // ignore: deprecated_member_use
                     color: Colors.black.withOpacity(0.5),
                   ),
                   child: const Text(

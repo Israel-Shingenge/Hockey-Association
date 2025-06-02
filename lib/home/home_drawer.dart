@@ -1,13 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; 
 import 'package:hockey_union/aboutUs/contact_us.dart';
 import 'package:hockey_union/events/view_events.dart';
+import 'package:hockey_union/home/admin_dashboard.dart';
 import 'package:hockey_union/standings/fixtures.dart';
 import 'package:hockey_union/news/news.dart';
 import 'package:hockey_union/teams/team_page.dart';
 
-class HomeDrawer extends StatelessWidget {
+
+class HomeDrawer extends StatefulWidget {
   const HomeDrawer({super.key});
+
+  @override
+  State<HomeDrawer> createState() => _HomeDrawerState();
+}
+
+class _HomeDrawerState extends State<HomeDrawer> {
+  String userRole = '';
+  final User? user = FirebaseAuth.instance.currentUser;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserRole();
+  }
+
+  Future<void> _fetchUserRole() async {
+    if (user != null) {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('Users') 
+          .doc(user!.uid)
+          .get();
+
+      if (snapshot.exists && snapshot.data() != null) {
+        setState(() {
+          userRole = snapshot.data()!['role'] ?? '';
+        });
+      }
+    }
+  }
 
   Color _hexToColor(String hexColor) {
     hexColor = hexColor.toUpperCase().replaceAll("#", "");
@@ -24,7 +56,7 @@ class HomeDrawer extends StatelessWidget {
     required VoidCallback onTap,
     bool isSelected = false,
   }) {
-    final Color activeColor = _hexToColor("2E4A78");
+    final Color activeColor = _hexToColor("2E4A78"); 
     final Color textColor = isSelected ? Colors.white : Colors.black;
     final Color iconColor = isSelected ? Colors.white : Colors.black;
 
@@ -42,10 +74,11 @@ class HomeDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final User? user = FirebaseAuth.instance.currentUser;
     final String? displayName = user?.displayName;
     final String? photoUrl = user?.photoURL;
     final String currentRoute = ModalRoute.of(context)?.settings.name ?? '/';
+
+    final bool isAdmin = userRole == 'Admin'; 
 
     return Drawer(
       child: Column(
@@ -154,7 +187,7 @@ class HomeDrawer extends StatelessWidget {
                 ),
                 _buildDrawerItem(
                   context: context,
-                  icon: Icons.group,
+                  icon: Icons.contact_mail,
                   title: 'Contact Us',
                   onTap: () {
                     Navigator.of(context).pop();
@@ -167,21 +200,22 @@ class HomeDrawer extends StatelessWidget {
                   },
                   isSelected: currentRoute == '/contactUs',
                 ),
-                    _buildDrawerItem(
-                  context: context,
-                  icon: Icons.lightbulb,
-                  title: 'Discover',
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    if (currentRoute != '/discover') {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const ContactUsPage()),
-                      );
-                    }
-                  },
-                  isSelected: currentRoute == '/discover',
-                ),
+                if (isAdmin) 
+                  _buildDrawerItem(
+                    context: context,
+                    icon: Icons.dashboard,
+                    title: 'Admin Dashboard',
+                    onTap: () {
+                      Navigator.of(context).pop(); 
+                      if (currentRoute != '/adminDashboard') {
+                         Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const AdminDashboard()),
+                        );
+                      }
+                    },
+                    isSelected: currentRoute == '/adminDashboard',
+                  ),
               ],
             ),
           ),

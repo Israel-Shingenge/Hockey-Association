@@ -224,7 +224,7 @@ class _AddPlayerPageState extends State<AddPlayerPage> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                             side: isSelected
-                                ? const BorderSide(color: const Color.fromARGB(255, 11, 71, 182), width: 2) // Border for selected
+                                ? const BorderSide(color: Color.fromARGB(255, 11, 71, 182), width: 2) // Border for selected
                                 : BorderSide.none,
                           ),
                           color: isSelected ? Colors.blueAccent.withOpacity(0.1) : Colors.white,
@@ -262,7 +262,7 @@ class _AddPlayerPageState extends State<AddPlayerPage> {
                                   ),
                                 ),
                                 if (isSelected)
-                                  const Icon(Icons.check_circle, color: const Color.fromARGB(255, 11, 71, 182),),
+                                  const Icon(Icons.check_circle, color: Color.fromARGB(255, 11, 71, 182),),
                               ],
                             ),
                           ),
