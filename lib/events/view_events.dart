@@ -15,26 +15,26 @@ class EventDetailPage extends StatefulWidget {
 class _EventDetailPageState extends State<EventDetailPage> {
   bool _showEventDetailsPopup = false;
   Map<String, dynamic>? selectedEvent;
-  String _currentView = 'all'; // Keep track of the current view
+  String _currentView = 'all'; 
 
   // FirebaseAuth and Firestore instances
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   String? _userRole; // To store the user's role
-  bool _loadingRole = true; // To manage loading state for the role
+  bool _loadingRole = true;
 
   @override
   void initState() {
     super.initState();
-    _loadUserRole(); // Load user role on init
+    _loadUserRole(); 
     // Listen for auth state changes to update the user role dynamically
     _auth.authStateChanges().listen((User? user) {
       if (user != null) {
         _fetchUserRole(user.uid);
       } else {
         setState(() {
-          _userRole = 'player'; // Default to player if no user is logged in
+          _userRole = 'player'; 
           _loadingRole = false;
         });
       }
@@ -166,7 +166,6 @@ class _EventDetailPageState extends State<EventDetailPage> {
   }
 
   Future<void> _unregisterFromEvent(String eventId) async {
-    // Only Admin and Manager roles can unregister
     if (!_isAdmin && !_isManager) {
       _showSnackBar('You do not have permission to unregister from events.');
       return;
@@ -294,7 +293,6 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
     return GestureDetector(
       onTap: () {
-        // Navigate to the EventTeamsPage, passing the event data
         Navigator.push(
           context,
           MaterialPageRoute(

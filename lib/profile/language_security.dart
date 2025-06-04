@@ -136,9 +136,8 @@ class _LanguageSecurityPageState extends State<LanguageSecurityPage> {
                       child: ElevatedButton(
                         onPressed: () {
                           if (_formKey.currentState!.validate()) {
-                            // Implement change password logic here
+                            // I did not implement password change logic yet
                             print('Change Password clicked');
-                            // You would typically call an authentication service here
                           }
                         },
                         child: const Text('CHANGE PASSWORD'),
@@ -152,9 +151,8 @@ class _LanguageSecurityPageState extends State<LanguageSecurityPage> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    // Implement save changes logic (e.g., update language)
                     print('Save Changes clicked. Language: $_selectedLanguage');
-                    Navigator.pop(context); // Go back to the ProfilePage
+                    Navigator.pop(context); 
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue[900],

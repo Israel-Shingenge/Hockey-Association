@@ -227,9 +227,9 @@ class _PlayerProfilePageState extends State<PlayerProfilePage> {
         final String firstName = playerData['firstName'] ?? '';
         final String lastName = playerData['lastName'] ?? '';
         final String? email = playerData['email'];
-        final String? phoneNumber = playerData['phoneNumber'];
+        final String? phone = playerData['phone'];
 
-        if (firstName.isEmpty && lastName.isEmpty && (email == null && phoneNumber == null)) {
+        if (firstName.isEmpty && lastName.isEmpty && (email == null && phone == null)) {
           ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('No contact information available to add.')));
           return;
@@ -241,8 +241,8 @@ class _PlayerProfilePageState extends State<PlayerProfilePage> {
         if (email != null && email.isNotEmpty) {
           newContact.emails = [Email(email)];
         }
-        if (phoneNumber != null && phoneNumber.isNotEmpty) {
-          newContact.phones = [Phone(phoneNumber)];
+        if (phone != null && phone.isNotEmpty) {
+          newContact.phones = [Phone(phone)];
         }
 
         await newContact.insert();
@@ -476,27 +476,27 @@ class _PlayerProfilePageState extends State<PlayerProfilePage> {
                 const SizedBox(height: 20.0),
 
                 const Text(
-                  'Other Details',
+                  '',
                   style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold, color: Colors.blueGrey),
                 ),
                 const SizedBox(height: 8.0),
-                _buildProfileTile(
-                  title: 'Current Team',
-                  value: playerData['teamName'] ?? 'N/A',
-                  icon: Icons.group,
-                ),
-                const Divider(),
-                _buildProfileTile(
-                  title: 'Position',
-                  value: position,
-                  icon: Icons.sports_hockey,
-                ),
-                const Divider(),
-                _buildProfileTile(
-                  title: 'Notes',
-                  value: playerData['notes'] ?? 'No notes',
-                  icon: Icons.notes,
-                ),
+                // _buildProfileTile(
+                //   title: 'Current Team',
+                //   value: playerData['teamName'] ?? 'N/A',
+                //   icon: Icons.group,
+                // ),
+                // const Divider(),
+                // _buildProfileTile(
+                //   title: 'Position',
+                //   value: position,
+                //   icon: Icons.sports_hockey,
+                // ),
+                // const Divider(),
+                // _buildProfileTile(
+                //   title: 'Notes',
+                //   value: playerData['notes'] ?? 'No notes',
+                //   icon: Icons.notes,
+                // ),
               ],
             ),
           );

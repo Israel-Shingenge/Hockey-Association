@@ -107,7 +107,7 @@ class _StandingsPageState extends State<StandingsPage> {
                     decoration: const InputDecoration(
                       labelText: 'League Type',
                       border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 5), // Adjusted padding
+                      contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 5), 
                     ),
                     items: LeagueType.values.map((LeagueType league) {
                       return DropdownMenuItem<LeagueType>(
@@ -173,7 +173,6 @@ class _StandingsPageState extends State<StandingsPage> {
 
   // Widget to build an editable number field for standings stats
   Widget _buildNumberEditableField(String docId, String field, int value, {bool isPoints = false}) {
-    // Determine if the field should be editable based on user role
     final bool canEdit = _currentUserRole == 'Admin';
 
     return SizedBox(

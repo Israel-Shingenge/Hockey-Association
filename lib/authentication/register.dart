@@ -24,7 +24,7 @@ class _RegisterPageState extends State<RegisterPage> {
   String? errorMessage = '';
   bool _isPasswordVisible = false;
   String? _selectedRole;
-  final List<String> _roles = ['Manager', 'Admin', 'Player'];
+  final List<String> _roles = ['Manager','Player'];
 
     Future<void> createUserWithEmailAndPassword() async {
       if (!_formKey.currentState!.validate()) return;
@@ -73,8 +73,8 @@ class _RegisterPageState extends State<RegisterPage> {
       obscureText: isPassword ? !_isPasswordVisible : obscure,
       keyboardType: keyboard,
       decoration: InputDecoration(
-        hintText: label, // Changed from labelText to hintText
-        border: const OutlineInputBorder(), // Added border
+        hintText: label, 
+        border: const OutlineInputBorder(), 
         suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(
@@ -103,7 +103,7 @@ class _RegisterPageState extends State<RegisterPage> {
       items: _roles.map((role) => DropdownMenuItem(value: role, child: Text(role))).toList(),
       onChanged: (val) => setState(() => _selectedRole = val),
       decoration: const InputDecoration(
-        hintText: 'Select Role', // Changed labelText to hintText
+        hintText: 'Select Role', 
         border: OutlineInputBorder(),
       ),
       validator: (value) => value == null ? 'Please select a role' : null,
@@ -172,7 +172,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => const LoginPage()), // Navigate back to LoginPage
+                              builder: (context) => const LoginPage()),
                         );
                       },
                       child: const Text('Already have an account? Log In'),

@@ -66,7 +66,7 @@ class FixturesPreviewCard extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              Icons.event_busy_outlined, // A calendar or clock icon
+                              Icons.event_busy_outlined, 
                               size: 60,
                               color: Colors.grey[400],
                             ),
@@ -132,7 +132,6 @@ class FixturesPreviewCard extends StatelessWidget {
                           displayDate = DateFormat('MMM dd, yyyy').format(fixtureDateTime);
                         }
                       } else {
-                        // Fallback if timestamp is not a Timestamp (though it should be)
                         final dateString = fixture['date'] ?? '';
                         final timeString = fixture['time'] ?? '';
                         try {

@@ -93,7 +93,23 @@ class _AddPlayerPageState extends State<AddPlayerPage> {
     }
 
     if (_formKey.currentState!.validate()) {
+      final String playerEmail = _emailController.text.trim();
+
       try {
+        final existingPlayers = await FirebaseFirestore.instance
+            .collection('Player')
+            .where('teamId', isEqualTo: _selectedTeamId)
+            .where('email', isEqualTo: playerEmail)
+            .limit(1) 
+            .get();
+
+        if (existingPlayers.docs.isNotEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('A player with this email already exists in this team.')),
+          );
+          return; 
+        }
+
         await FirebaseFirestore.instance.collection('Player').add({
           'firstName': _firstNameController.text.trim(),
           'lastName': _lastNameController.text.trim(),
@@ -101,10 +117,10 @@ class _AddPlayerPageState extends State<AddPlayerPage> {
           'gender': _selectedGender,
           'position': _positionController.text.trim(),
           'jerseyNumber': int.tryParse(_jerseyNumberController.text.trim()),
-          'email': _emailController.text.trim(),
+          'email': playerEmail, 
           'phone': int.tryParse(_phoneController.text.trim()),
           'teamId': _selectedTeamId,
-          'firebaseAuthUid': null,
+          'firebaseAuthUid': null, 
           'createdAt': FieldValue.serverTimestamp(),
         });
 
@@ -116,6 +132,7 @@ class _AddPlayerPageState extends State<AddPlayerPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to add player: $e')),
         );
+        print('Error adding player or checking duplicate: $e'); 
       }
     }
   }
@@ -224,7 +241,7 @@ class _AddPlayerPageState extends State<AddPlayerPage> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                             side: isSelected
-                                ? const BorderSide(color: Color.fromARGB(255, 11, 71, 182), width: 2) // Border for selected
+                                ? const BorderSide(color: Color.fromARGB(255, 11, 71, 182), width: 2) 
                                 : BorderSide.none,
                           ),
                           color: isSelected ? Colors.blueAccent.withOpacity(0.1) : Colors.white,
@@ -342,7 +359,7 @@ class _AddPlayerPageState extends State<AddPlayerPage> {
                   labelText: 'First Name',
                   border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
                   focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color:  Color.fromARGB(255, 11, 71, 182), width: 2),
+                    borderSide: BorderSide(color: Color.fromARGB(255, 11, 71, 182), width: 2),
                     borderRadius: BorderRadius.all(Radius.circular(10)),
                   ),
                 ),
@@ -356,7 +373,7 @@ class _AddPlayerPageState extends State<AddPlayerPage> {
                   labelText: 'Last Name',
                   border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
                   focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color:  Color.fromARGB(255, 11, 71, 182), width: 2),
+                    borderSide: BorderSide(color: Color.fromARGB(255, 11, 71, 182), width: 2),
                     borderRadius: BorderRadius.all(Radius.circular(10)),
                   ),
                 ),
@@ -369,7 +386,7 @@ class _AddPlayerPageState extends State<AddPlayerPage> {
                 decoration: InputDecoration(
                   labelText: 'Birthday (DD/MM/YYYY)',
                   suffixIcon: IconButton(
-                    icon: const Icon(Icons.calendar_today, color:  Color.fromARGB(255, 11, 71, 182),),
+                    icon: const Icon(Icons.calendar_today, color: Color.fromARGB(255, 11, 71, 182),),
                     onPressed: () => _selectDate(context),
                   ),
                   border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
@@ -390,15 +407,15 @@ class _AddPlayerPageState extends State<AddPlayerPage> {
                   labelText: 'Gender',
                   border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
                   focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color:  Color.fromARGB(255, 11, 71, 182), width: 2),
+                    borderSide: BorderSide(color: Color.fromARGB(255, 11, 71, 182), width: 2),
                     borderRadius: BorderRadius.all(Radius.circular(10)),
                   ),
                 ),
                 items: <String>['M', 'F', 'Other']
                     .map((String value) => DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        ))
+                            value: value,
+                            child: Text(value),
+                          ))
                     .toList(),
                 onChanged: (String? newValue) {
                   setState(() {
@@ -415,7 +432,7 @@ class _AddPlayerPageState extends State<AddPlayerPage> {
                   labelText: 'Position',
                   border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
                   focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color:  Color.fromARGB(255, 11, 71, 182), width: 2),
+                    borderSide: BorderSide(color: Color.fromARGB(255, 11, 71, 182), width: 2),
                     borderRadius: BorderRadius.all(Radius.circular(10)),
                   ),
                 ),
@@ -451,7 +468,7 @@ class _AddPlayerPageState extends State<AddPlayerPage> {
                   labelText: 'Email',
                   border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
                   focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color:  Color.fromARGB(255, 11, 71, 182), width: 2),
+                    borderSide: BorderSide(color: Color.fromARGB(255, 11, 71, 182), width: 2),
                     borderRadius: BorderRadius.all(Radius.circular(10)),
                   ),
                 ),
@@ -473,7 +490,7 @@ class _AddPlayerPageState extends State<AddPlayerPage> {
                   labelText: 'Phone Number',
                   border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
                   focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color:  Color.fromARGB(255, 11, 71, 182), width: 2),
+                    borderSide: BorderSide(color: Color.fromARGB(255, 11, 71, 182), width: 2),
                     borderRadius: BorderRadius.all(Radius.circular(10)),
                   ),
                 ),

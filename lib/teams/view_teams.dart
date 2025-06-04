@@ -22,7 +22,6 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
     super.initState();
   }
 
-  // Modified to take a list of teams, so it can be called when data is available
   Future<void> _loadLocalLogos(List<DocumentSnapshot> teams) async {
     if (teams.isEmpty) return; 
 
@@ -61,7 +60,6 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
     }
   }
 
-  // Helper to compare maps (optional, but good for efficiency)
   bool mapEquals(Map<String, File?> m1, Map<String, File?> m2) {
     if (m1.length != m2.length) return false;
     for (final key in m1.keys) {
@@ -135,7 +133,7 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
                       );
                     }
                   },
-                  child: const Text('Edit', style: TextStyle(color: Colors.blue)),
+                  child: const Text('', style: TextStyle(color: Colors.blue)),
                 ),
               ],
             ),
@@ -157,7 +155,6 @@ class _TeamSelectionPageState extends State<TeamSelectionPage> {
                 } else if (snapshot.hasError) {
                   return Center(child: Text('Error loading teams: ${snapshot.error}'));
                 } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  // If no data, ensure logos are cleared and flag reset
                   _userTeams = [];
                   if (_localLogos.isNotEmpty || _localLogosLoadedForCurrentTeams) {
                     _localLogos.clear();

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hockey_union/standings/standings.dart';
-import 'dart:async'; // For Timer
+import 'dart:async'; 
 
 class LiveMatchCardFirestore extends StatefulWidget {
   final DocumentSnapshot fixtureDocument;
@@ -19,12 +19,11 @@ class _LiveMatchCardFirestoreState extends State<LiveMatchCardFirestore> {
   Timer? _timer;
   String _displayTime = 'N/A';
   String _matchStatus = 'scheduled';
-  bool _standingsUpdated = false; // New flag to prevent multiple updates
+  bool _standingsUpdated = false;
 
   @override
   void initState() {
     super.initState();
-    // Retrieve current match status from Firestore on init
     final data = widget.fixtureDocument.data() as Map<String, dynamic>;
     _matchStatus = data['matchStatus'] ?? 'scheduled';
     // Check if standings were already updated for a finished match
@@ -40,7 +39,7 @@ class _LiveMatchCardFirestoreState extends State<LiveMatchCardFirestore> {
       _timer?.cancel();
       final data = widget.fixtureDocument.data() as Map<String, dynamic>;
       _matchStatus = data['matchStatus'] ?? 'scheduled';
-      _standingsUpdated = data['standingsUpdated'] ?? false; // Update flag on widget update
+      _standingsUpdated = data['standingsUpdated'] ?? false; 
       _updateMatchStatusAndTimer();
     }
   }
@@ -51,7 +50,6 @@ class _LiveMatchCardFirestoreState extends State<LiveMatchCardFirestore> {
     final Timestamp? scheduledEndTimestamp = data['scheduledEndTimeStamp'] as Timestamp?;
     final String currentDbStatus = data['matchStatus'] ?? 'scheduled'; // Get status from DB
 
-    // If the DB says it's already finished and standings are updated, no need to run timer
     if (currentDbStatus == 'finished' && _standingsUpdated) {
       setState(() {
         _matchStatus = 'finished';
@@ -84,19 +82,19 @@ class _LiveMatchCardFirestoreState extends State<LiveMatchCardFirestore> {
       // Match is theoretically finished based on schedule
       _matchStatus = 'finished';
       _displayTime = 'Finished';
-      _updateFirestoreMatchStatus('finished'); // Set status to finished in DB
+      _updateFirestoreMatchStatus('finished'); 
     }
 
     setState(() {});
   }
 
   void _startUpcomingCountdown(DateTime startTime) {
-    _timer?.cancel(); // Cancel any existing timer
+    _timer?.cancel(); 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       final Duration remaining = startTime.difference(DateTime.now());
       if (remaining.isNegative) {
         timer.cancel();
-        _updateMatchStatusAndTimer(); // Re-evaluate status
+        _updateMatchStatusAndTimer(); 
       } else {
         setState(() {
           _displayTime = 'Starts in: ${remaining.inHours.toString().padLeft(2, '0')}:${(remaining.inMinutes % 60).toString().padLeft(2, '0')}:${(remaining.inSeconds % 60).toString().padLeft(2, '0')}';
@@ -106,14 +104,14 @@ class _LiveMatchCardFirestoreState extends State<LiveMatchCardFirestore> {
   }
 
   void _startLiveCountdown(DateTime endTime) {
-    _timer?.cancel(); // Cancel any existing timer
+    _timer?.cancel(); 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       final Duration remaining = endTime.difference(DateTime.now());
       if (remaining.isNegative) {
         timer.cancel();
         _matchStatus = 'finished';
         _displayTime = 'Finished';
-        _updateFirestoreMatchStatus('finished'); // Set status to finished in DB
+        _updateFirestoreMatchStatus('finished'); 
       } else {
         setState(() {
           _displayTime = 'Live: ${remaining.inMinutes.toString().padLeft(2, '0')}:${(remaining.inSeconds % 60).toString().padLeft(2, '0')}';
@@ -133,18 +131,18 @@ class _LiveMatchCardFirestoreState extends State<LiveMatchCardFirestore> {
       if (status == 'finished' && currentDbStatus != 'finished' && !alreadyUpdated) {
         await FirebaseFirestore.instance.collection('Fixtures').doc(widget.fixtureDocument.id).update({
           'matchStatus': status,
-          'standingsUpdated': true, // Mark that standings have been processed for this match
+          'standingsUpdated': true, 
         });
         print('Fixture ${widget.fixtureDocument.id} status updated to $status and standings process initiated.');
         setState(() {
-          _standingsUpdated = true; // Update local state
+          _standingsUpdated = true; 
         });
-        // --- Trigger Standings Update Here ---
+
         _updateStandings();
       } else if (status == 'finished' && alreadyUpdated) {
         print('Fixture ${widget.fixtureDocument.id} already finished and standings already updated. Skipping.');
       } else {
-        // For 'upcoming' or 'live' status changes, just update the status
+
         await FirebaseFirestore.instance.collection('Fixtures').doc(widget.fixtureDocument.id).update({
           'matchStatus': status,
         });
@@ -152,17 +150,16 @@ class _LiveMatchCardFirestoreState extends State<LiveMatchCardFirestore> {
       }
     } catch (e) {
       print('Error updating fixture status or standings: $e');
-      // Potentially show a snackbar or log to a crash reporting service
+
     }
   }
 
-  // NEW: Function to update team standings
   Future<void> _updateStandings() async {
     final data = widget.fixtureDocument.data() as Map<String, dynamic>;
     final String team1Name = data['team1Name'] ?? '';
     final String team2Name = data['team2Name'] ?? '';
-    final String leagueType = data['leagueType'] ?? ''; // Ensure this field exists in your Fixture documents
-    final String scoreString = data['score'] ?? '0 - 0'; // "Goals1 - Goals2"
+    final String leagueType = data['leagueType'] ?? ''; 
+    final String scoreString = data['score'] ?? '0 - 0';
 
     // Parse scores
     List<String> scores = scoreString.split(' - ');
@@ -193,14 +190,12 @@ class _LiveMatchCardFirestoreState extends State<LiveMatchCardFirestore> {
 
       if (team1Snapshot.docs.isEmpty || team2Snapshot.docs.isEmpty) {
         print('Error: One or both teams not found in Standings collection.');
-        // Consider adding teams if not found, or showing an error
+
         return;
       }
 
       final DocumentReference team1Ref = team1Snapshot.docs.first.reference;
       final DocumentReference team2Ref = team2Snapshot.docs.first.reference;
-
-      // Get current data for both teams (use transaction for atomicity if needed for high traffic)
       Map<String, dynamic> team1Data = team1Snapshot.docs.first.data() as Map<String, dynamic>;
       Map<String, dynamic> team2Data = team2Snapshot.docs.first.data() as Map<String, dynamic>;
 
@@ -233,21 +228,15 @@ class _LiveMatchCardFirestoreState extends State<LiveMatchCardFirestore> {
 
       // Apply Hockey Specific Scoring Rules
       if (team1Score > team2Score) {
-        // Team 1 wins
         team1Points += 2;
         team1Wins++;
         team2Losses++;
-        // NOTE: In hockey, if it goes to OT/SO and there's a winner, the loser might get 1 point.
-        // For simplicity, we're treating any loss as 0 points unless you specify a separate 'OTL' field.
-        // If you need OTL points (1 point for loser in OT/SO), you'd need to store how the game ended (e.g., 'regulation', 'overtime', 'shootout') in your fixture document.
-        // For now, it's a simple win/loss. If you want OTL, let me know, and we'll add a 'gameOutcome' field to your fixture data.
-      } else if (team2Score > team1Score) {
+     } else if (team2Score > team1Score) {
         // Team 2 wins
         team2Points += 2;
         team2Wins++;
         team1Losses++;
       } else {
-        // Draw (less common in modern hockey for final scores, but if it happens, give 1 point each)
         team1Points += 1;
         team2Points += 1;
         team1Draws++;

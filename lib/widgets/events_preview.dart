@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import 'package:hockey_union/events/view_events.dart'; // Make sure this imports EventDetailPage as well, or adjust
+import 'package:hockey_union/events/view_events.dart'; 
 
 class EventsPreviewCard extends StatelessWidget {
   const EventsPreviewCard({super.key});
@@ -20,11 +20,10 @@ class EventsPreviewCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 8),
       child: InkWell(
         onTap: () {
-          // Navigate to the full events listing page.
-          // Assuming EventDetailPage is the main view for all events, or you have a dedicated EventsListPage
+          
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const EventDetailPage()), // Or your main EventsList/Calendar page
+            MaterialPageRoute(builder: (context) => const EventDetailPage()), 
           );
         },
         borderRadius: BorderRadius.circular(12),
@@ -35,7 +34,6 @@ class EventsPreviewCard extends StatelessWidget {
             children: [
               const SizedBox(height: 12),
               StreamBuilder<QuerySnapshot>(
-                // Fetch upcoming events, ordered by date and limited to 3.
                 stream: eventsCollection
                     .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(today))
                     .orderBy('date')
@@ -55,7 +53,6 @@ class EventsPreviewCard extends StatelessWidget {
                     return _buildEmptyState(context);
                   }
 
-                  // Display the list of upcoming events.
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: snapshot.data!.docs
@@ -124,7 +121,7 @@ class EventsPreviewCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.event_note_outlined, // A fitting icon for no events
+              Icons.event_note_outlined, 
               size: 60,
               color: Colors.grey[400],
             ),
@@ -173,7 +170,7 @@ class EventsPreviewCard extends StatelessWidget {
             ),
             const SizedBox(height: 5),
             Text(
-              'Error: $error', // Show error in debug, or a generic message
+              'Error: $error', 
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Colors.red[400],
                   ),
@@ -195,7 +192,7 @@ class _LoadingIndicator extends StatelessWidget {
     return const Center(
       child: Padding(
         padding: EdgeInsets.symmetric(vertical: 20.0),
-        child: CircularProgressIndicator(strokeWidth: 2), // Consistent stroke width
+        child: CircularProgressIndicator(strokeWidth: 2),
       ),
     );
   }
@@ -229,8 +226,8 @@ class _EventImage extends StatelessWidget {
     return Container(
       height: 60,
       width: 60,
-      color: Colors.grey[200], // Lighter grey for placeholder background
-      child: Icon(Icons.event, color: Colors.grey[500], size: 36), // Slightly darker grey for icon
+      color: Colors.grey[200], 
+      child: Icon(Icons.event, color: Colors.grey[500], size: 36), 
     );
   }
 }

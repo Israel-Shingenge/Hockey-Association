@@ -13,14 +13,15 @@ class NominatimService {
     );
 
     final response = await http.get(url, headers: {
-      'User-Agent': 'HockeyUnion - israelrshingene@gmail.com',  
+      'User-Agent': 'HockeyUnion - israelrshingene@gmail.com',
     });
 
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
       return data.map((e) => NominatimPlace.fromJson(e)).toList();
     } else {
-      throw Exception('Failed to fetch suggestions');
+      print('Failed to fetch suggestions: ${response.statusCode} - ${response.body}');
+      return [];
     }
   }
 }
@@ -64,7 +65,7 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
   // New variables for autocomplete
   List<NominatimPlace> _suggestions = [];
   bool _isLoadingSuggestions = false;
-  NominatimPlace? _selectedPlace;
+  NominatimPlace? _selectedPlace; // Stores the selected suggestion
 
   @override
   void dispose() {
@@ -159,15 +160,17 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
   }
 
   Future<void> _saveEventToFirestore() async {
+    // Basic validation for event name and date/time
     if (_eventNameController.text.isEmpty || _selectedDateTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in required fields.')),
+        const SnackBar(content: Text('Please fill in required fields (Event Name and Date/Time).')),
       );
       return;
     }
-    if (_locationController.text.isEmpty || _selectedPlace == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a valid location from suggestions.')),
+
+    if (_locationController.text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a location for the event.')),
       );
       return;
     }
@@ -176,9 +179,9 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
       'nameOfEvent': _eventNameController.text,
       'date': Timestamp.fromDate(_selectedDateTime!),
       'repeats': _repeats,
-      'location': _locationController.text,
-      'latitude': _selectedPlace!.lat,
-      'longitude': _selectedPlace!.lon,
+      'location': _locationController.text, 
+      'latitude': _selectedPlace?.lat, 
+      'longitude': _selectedPlace?.lon, 
       'volunteerAssignments': _selectedVolunteerAssignment ?? '',
       'duration': _durationController.text,
       'notes': _notesController.text,
@@ -287,9 +290,16 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
                     hintText: 'Start typing location...',
                   ),
                   onChanged: (value) async {
+                    if (_selectedPlace != null) {
+                      setState(() {
+                        _selectedPlace = null;
+                      });
+                    }
+
                     if (value.length < 3) {
                       setState(() {
                         _suggestions = [];
+                        _isLoadingSuggestions = false; 
                       });
                       return;
                     }
@@ -307,23 +317,36 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
                         _suggestions = [];
                         _isLoadingSuggestions = false;
                       });
+                      // Optionally show a snackbar for the user if fetching fails
+                      // ScaffoldMessenger.of(context).showSnackBar(
+                      //   SnackBar(content: Text('Failed to fetch location suggestions.')),
+                      // );
                     }
                   },
                 ),
                 if (_isLoadingSuggestions)
                   const LinearProgressIndicator(),
-                ..._suggestions.map(
-                  (place) => ListTile(
-                    title: Text(place.displayName),
-                    onTap: () {
-                      setState(() {
-                        _locationController.text = place.displayName;
-                        _selectedPlace = place;
-                        _suggestions = [];
-                      });
-                    },
+                if (!_isLoadingSuggestions && _suggestions.isNotEmpty)
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: 200), 
+                    child: ListView.builder(
+                      shrinkWrap: true, 
+                      itemCount: _suggestions.length,
+                      itemBuilder: (context, index) {
+                        final place = _suggestions[index];
+                        return ListTile(
+                          title: Text(place.displayName),
+                          onTap: () {
+                            setState(() {
+                              _locationController.text = place.displayName;
+                              _selectedPlace = place; // Set the selected place
+                              _suggestions = []; 
+                            });
+                          },
+                        );
+                      },
+                    ),
                   ),
-                ),
               ],
             ),
             const SizedBox(height: 16.0),
@@ -347,9 +370,10 @@ class _AddNewEventPageState extends State<AddNewEventPage> {
             TextFormField(
               controller: _durationController,
               decoration: const InputDecoration(
-                labelText: 'Duration',
+                labelText: 'Duration (e.g., 2 hours)', 
                 border: OutlineInputBorder(),
               ),
+              keyboardType: TextInputType.text, 
             ),
             const SizedBox(height: 16.0),
             TextFormField(

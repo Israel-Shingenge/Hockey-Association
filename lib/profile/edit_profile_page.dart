@@ -22,6 +22,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
   String? _selectedGender;
+  String? _userRole;
 
   File? _localProfileImage;
   final ImagePicker _picker = ImagePicker();
@@ -52,6 +53,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         _emailController.text = snapshot['email'] ?? '';
         _phoneController.text = snapshot['phone'] ?? '';
         _selectedGender = snapshot['gender'];
+        _userRole = snapshot['role'] ?? 'N/A'; 
       });
     }
   }
@@ -158,6 +160,21 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 ),
               ),
               const SizedBox(height: 24),
+              // Display the User's Role here
+              if (_userRole != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: Center(
+                    child: Text(
+                      'Role: $_userRole',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue[800],
+                      ),
+                    ),
+                  ),
+                ),
               const Text('Full Name', style: TextStyle(fontWeight: FontWeight.bold)),
               TextFormField(
                 controller: _firstNameController,

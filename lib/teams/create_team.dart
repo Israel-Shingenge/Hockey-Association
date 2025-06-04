@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:hockey_union/home/home_drawer.dart';
+import 'package:hockey_union/home/home_drawer.dart'; // Make sure this path is correct
 
 class CreateTeamPage extends StatefulWidget {
   const CreateTeamPage({super.key});
@@ -31,14 +31,29 @@ class _CreateTeamPageState extends State<CreateTeamPage> {
       }
 
       try {
+        final inputTeamName = _clubNameController.text.trim();
+
+        final teamNameQuery = await FirebaseFirestore.instance
+            .collection('Teams') 
+            .where('clubName', isEqualTo: inputTeamName)
+            .limit(1) 
+            .get();
+
+        if (teamNameQuery.docs.isNotEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Team name already exists. Please choose a different name.')),
+          );
+          return; 
+        }
+
         final teamRef = await FirebaseFirestore.instance.collection('Teams').add({
-          'clubName': _clubNameController.text.trim(),
+          'clubName': inputTeamName, 
           'clubLeague': _clubLeagueController.text.trim(),
           'contactPerson': _clubContactPersonController.text.trim(),
           'email': _emailController.text.trim(),
           'phoneNumber': _phoneNumberController.text.trim(),
           'clubDescription': _clubDescriptionController.text.trim(),
-          'managerFirebaseUid': uid, 
+          'managerFirebaseUid': uid,
           'createdAt': FieldValue.serverTimestamp(),
           'logoUrl': null, 
         });
@@ -49,10 +64,10 @@ class _CreateTeamPageState extends State<CreateTeamPage> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Team created successfully')),
+          const SnackBar(content: Text('Team created successfully!')),
         );
 
-        Navigator.of(context).pop(); 
+        Navigator.of(context).pop();
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to create team: $e')),
@@ -63,6 +78,7 @@ class _CreateTeamPageState extends State<CreateTeamPage> {
 
   @override
   void dispose() {
+    // Dispose of all text controllers to prevent memory leaks
     _clubNameController.dispose();
     _clubLeagueController.dispose();
     _clubContactPersonController.dispose();
@@ -90,7 +106,7 @@ class _CreateTeamPageState extends State<CreateTeamPage> {
           child: SizedBox(
             height: 30,
             child: Image.asset(
-              'assets/images/NHU.png',
+              'assets/images/NHU.png', 
               fit: BoxFit.contain,
             ),
           ),
@@ -102,7 +118,7 @@ class _CreateTeamPageState extends State<CreateTeamPage> {
           ),
         ],
       ),
-      drawer: const HomeDrawer(),
+      drawer: const HomeDrawer(), 
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -123,14 +139,14 @@ class _CreateTeamPageState extends State<CreateTeamPage> {
                   ),
                 ),
                 const SizedBox(height: 30.0),
-                
+
                 Container(
                   height: 1.0,
                   color: Colors.grey[300],
                   margin: const EdgeInsets.symmetric(horizontal: 0.0),
                 ),
                 const SizedBox(height: 30.0),
-                
+
                 _buildOutlineTextField(
                   controller: _clubNameController,
                   labelText: 'Club Name',
@@ -161,7 +177,7 @@ class _CreateTeamPageState extends State<CreateTeamPage> {
                     if (value == null || value.isEmpty) {
                       return 'Please enter email';
                     }
-                    if (!value.contains('@')) {
+                    if (!value.contains('@') || !value.contains('.')) { 
                       return 'Please enter a valid email';
                     }
                     return null;
@@ -187,10 +203,10 @@ class _CreateTeamPageState extends State<CreateTeamPage> {
                 const SizedBox(height: 40.0),
                 SizedBox(
                   height: 50.0,
-                  child: ElevatedButton( 
+                  child: ElevatedButton(
                     onPressed: _saveTeamToFirestore,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromARGB(255, 8, 67, 116), 
+                      backgroundColor: const Color.fromARGB(255, 8, 67, 116),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8.0),
                       ),
@@ -199,7 +215,7 @@ class _CreateTeamPageState extends State<CreateTeamPage> {
                     child: const Text(
                       'SAVE',
                       style: TextStyle(
-                        color: Colors.white, 
+                        color: Colors.white,
                         fontWeight: FontWeight.w600,
                         fontSize: 16.0,
                       ),
@@ -215,7 +231,7 @@ class _CreateTeamPageState extends State<CreateTeamPage> {
     );
   }
 
-  
+  // Helper method for consistent text field styling
   Widget _buildOutlineTextField({
     required TextEditingController controller,
     required String labelText,
